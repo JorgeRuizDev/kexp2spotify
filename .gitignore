@@ -10,6 +10,7 @@ build/
 *.egg-info/
 *.log
 .env*
+config.yml
 spotify-token*.json
 *spotify*token*.json
 .spotify/

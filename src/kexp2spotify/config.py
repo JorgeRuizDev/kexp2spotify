@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from dotenv import load_dotenv
 from pydantic import AnyHttpUrl, BaseModel, Field, ValidationError, field_validator
 
 from .errors import ConfigurationError
@@ -59,8 +60,9 @@ class Settings(BaseModel):
 
 
 def load_settings(config_path: str | Path | None = None) -> Settings:
-    """Load required YAML, then apply KEXP_ environment overrides."""
+    """Load current-directory .env, required YAML, then environment overrides."""
 
+    load_dotenv(Path.cwd() / ".env", override=False)
     selected = Path(config_path or os.environ.get("KEXP2SPOTIFY_CONFIG_FILE", "config.yml"))
     if not selected.is_file():
         raise ConfigurationError(f"configuration file is missing or unreadable: {selected}")
