@@ -11,6 +11,16 @@ uv sync --extra dev
 uv run python main.py --config /absolute/path/to/config.yml
 ```
 
+The command above only collects KEXP plays. To run the full flow, including
+Spotify playlist synchronization, authorize Spotify once and then run:
+
+```sh
+uv run python main.py spotify-login --config /absolute/path/to/config.yml
+uv run python main.py spotify-update --config /absolute/path/to/config.yml 
+```
+
+After the login, the following executions only need the `spotify-update` command to fetch & update!
+
 The CLI loads `.env` automatically when present. Explicitly exported environment variables take precedence over `.env`, and both take precedence over YAML values.
 
 The same command is suitable for cron. Use absolute paths for the config and database, and redirect stdout/stderr for monitoring. Environment variables named `KEXP2SPOTIFY_<FIELD>` override YAML values, for example `KEXP2SPOTIFY_FETCH_LIMIT`.
@@ -36,7 +46,7 @@ uv run kexp2spotify spotify-login --config /absolute/path/to/config.yml
 Run the unattended operation from cron or Task Scheduler:
 
 ```sh
-uv run kexp2spotify spotify-update --config /absolute/path/to/config.yml
+uv run python main.py spotify-update --config /absolute/path/to/config.yml
 ```
 
 See [docs/spotify-login.md](docs/spotify-login.md) for SSH port forwarding, permissions, reauthorization, and official Spotify references.
