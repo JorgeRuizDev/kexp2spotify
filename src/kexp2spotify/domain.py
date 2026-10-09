@@ -90,7 +90,7 @@ class Show(BaseModel):
 
 
 class SongQueueItem(BaseModel):
-    """One source song in chronological destination order."""
+    """One source song ordered by its queue timestamp."""
 
     model_config = ConfigDict(extra="forbid")
     show_id: str

@@ -47,7 +47,11 @@ def reconcile_queue(
         raise ValueError("playlist limit must be positive")
     existing = list(destination.read_playlist_items(playlist.provider_playlist_id))
     existing_uris = {item.uri for item in existing}
-    ordered = sorted(items, key=lambda item: (item.queued_at, item.source_id or "", item.track_id))
+    ordered = sorted(
+        items,
+        key=lambda item: (item.queued_at, item.source_id or "", item.track_id),
+        reverse=True,
+    )
     new_uris: list[str] = []
     skipped = 0
     for item in ordered:
@@ -60,16 +64,30 @@ def reconcile_queue(
                 skipped += 1
             continue
         new_uris.append(item.destination_uri)
-    destination.append_items(playlist.provider_playlist_id, new_uris)
-    combined = existing + [
-        DestinationItem(uri=uri, position=len(existing) + index)
-        for index, uri in enumerate(new_uris)
-    ]
+    prepend = getattr(destination, "prepend_items", None)
+    if callable(prepend):
+        # Spotify inserts every item at position 0, so send oldest-to-newest
+        # to preserve the desired newest-to-oldest order in the playlist.
+        prepend(playlist.provider_playlist_id, list(reversed(new_uris)))
+        combined = [
+            DestinationItem(uri=uri, position=index) for index, uri in enumerate(new_uris)
+        ] + [
+            DestinationItem(uri=item.uri, position=len(new_uris) + index)
+            for index, item in enumerate(existing)
+        ]
+    else:
+        # Compatibility with simple destinations that only support appending.
+        destination.append_items(playlist.provider_playlist_id, new_uris)
+        combined = existing + [
+            DestinationItem(uri=uri, position=len(existing) + index)
+            for index, uri in enumerate(new_uris)
+        ]
     remove_count = max(0, len(combined) - limit)
-    removed = combined[:remove_count]
+    removed = combined[-remove_count:] if remove_count else []
     if removed:
         destination.remove_items(playlist.provider_playlist_id, removed)
-    playlist.track_uris = [item.uri for item in combined[remove_count:]]
+    kept_count = len(combined) - remove_count
+    playlist.track_uris = [item.uri for item in combined[:kept_count]]
     return playlist, len(new_uris), len(removed), skipped
 
 

@@ -98,6 +98,23 @@ class SpotifyClient:
             last = response.json().get("snapshot_id")
         return MutationResult(changed=True, snapshot_id=last)
 
+    def prepend_items(self, playlist_id: str, track_uris: Sequence[str]) -> MutationResult:
+        """Insert tracks at the start, preserving the sequence supplied."""
+
+        if not track_uris:
+            return MutationResult(changed=False)
+        last: str | None = None
+        starts = range(0, len(track_uris), 100)
+        for start in reversed(list(starts)):
+            batch = list(track_uris[start : start + 100])
+            response = self._request(
+                "POST",
+                f"/playlists/{playlist_id}/items",
+                json={"uris": batch, "position": 0},
+            )
+            last = response.json().get("snapshot_id")
+        return MutationResult(changed=True, snapshot_id=last)
+
     def remove_items(self, playlist_id: str, items: Sequence[DestinationItem]) -> MutationResult:
         if not items:
             return MutationResult(changed=False)

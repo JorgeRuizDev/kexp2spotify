@@ -17,6 +17,10 @@ The same command is suitable for cron. Use absolute paths for the config and dat
 
 The process exits `0` for a completed run (including no new records) and `1` for configuration, source, or persistence failures. Logs contain phase and summary counts but never the full provider payload.
 
+## Observabilidad y avisos
+
+Las ejecuciones guardan su historial en SQLite. La primera ejecución de cada día (según `spotify_timezone`) envía a Telegram un resumen del día anterior. Si una ejecución falla, se reintenta tres veces; tras el cuarto intento se envía el error con su traza. Configura `telegram_bot_token` y `telegram_chat_id` en YAML o mediante `KEXP2SPOTIFY_TELEGRAM_BOT_TOKEN` y `KEXP2SPOTIFY_TELEGRAM_CHAT_ID`. Si Telegram no está configurado, el proceso sigue funcionando y deja el diagnóstico en el log.
+
 ## Spotify
 
 Copy the Spotify fields from [config.example.yml](config.example.yml) into the YAML file or use the `SPOTIFY_*` environment overrides. The Client ID and loopback redirect URI are required for Spotify commands; the Client Secret is optional for PKCE. Store the token outside the repository.

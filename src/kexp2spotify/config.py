@@ -32,6 +32,9 @@ class Settings(BaseModel):
     spotify_token_path: Path | None = None
     spotify_playlist_limit: int = Field(default=50, gt=0)
     spotify_timezone: str = "Europe/Madrid"
+    telegram_bot_token: str | None = None
+    telegram_chat_id: str | None = None
+    notification_timeout_seconds: float = Field(default=10, gt=0)
 
     @field_validator("database_path", "config_file")
     @classmethod
@@ -99,6 +102,13 @@ def load_settings(config_path: str | Path | None = None) -> Settings:
             values[f"spotify_{key}"] = os.environ[env_key]
         elif legacy_key in os.environ:
             values[f"spotify_{key}"] = os.environ[legacy_key]
+    for key, env_key in (
+        ("telegram_bot_token", "KEXP2SPOTIFY_TELEGRAM_BOT_TOKEN"),
+        ("telegram_chat_id", "KEXP2SPOTIFY_TELEGRAM_CHAT_ID"),
+        ("notification_timeout_seconds", "KEXP2SPOTIFY_NOTIFICATION_TIMEOUT_SECONDS"),
+    ):
+        if env_key in os.environ:
+            values[key] = os.environ[env_key]
     try:
         return Settings.model_validate(values)
     except ValidationError as exc:
