@@ -1,0 +1,6 @@
+kexp_plays_url: "https://api.kexp.org/v2/plays/"
+fetch_limit: 50
+deduplication_window: 100
+database_path: "data/kexp.sqlite3"
+request_timeout_seconds: 10
+config_file: "config.yml"
