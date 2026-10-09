@@ -21,12 +21,40 @@ class Settings(BaseModel):
     database_path: Path
     request_timeout_seconds: float = Field(gt=0)
     config_file: Path
+    spotify_client_id: str | None = None
+    spotify_client_secret: str | None = None
+    spotify_scope: str = (
+        "playlist-read-private playlist-read-collaborative playlist-modify-public "
+        "playlist-modify-private ugc-image-upload"
+    )
+    spotify_redirect_uri: str | None = None
+    spotify_token_path: Path | None = None
+    spotify_playlist_limit: int = Field(default=50, gt=0)
+    spotify_timezone: str = "Europe/Madrid"
 
     @field_validator("database_path", "config_file")
     @classmethod
     def non_empty_path(cls, value: Path) -> Path:
         if not str(value):
             raise ValueError("path must not be empty")
+        return value
+
+    @field_validator(
+        "spotify_client_id", "spotify_client_secret", "spotify_scope", "spotify_timezone"
+    )
+    @classmethod
+    def non_empty_spotify_text(cls, value: str | None) -> str | None:
+        if value is not None and not value.strip():
+            raise ValueError("Spotify value must not be empty")
+        return value.strip() if value is not None else value
+
+    @field_validator("spotify_redirect_uri")
+    @classmethod
+    def valid_spotify_redirect_uri(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+        if not value.startswith("http://127.0.0.1:") or not value.endswith("/callback"):
+            raise ValueError("spotify_redirect_uri must use http://127.0.0.1:<port>/callback")
         return value
 
 
@@ -44,10 +72,31 @@ def load_settings(config_path: str | Path | None = None) -> Settings:
         raise ConfigurationError("configuration YAML must contain a mapping")
     values: dict[str, Any] = dict(raw)
     values["config_file"] = selected
-    for key in ("kexp_plays_url", "fetch_limit", "deduplication_window", "database_path", "request_timeout_seconds"):
+    for key in (
+        "kexp_plays_url",
+        "fetch_limit",
+        "deduplication_window",
+        "database_path",
+        "request_timeout_seconds",
+    ):
         env_key = f"KEXP2SPOTIFY_{key.upper()}"
         if env_key in os.environ:
             values[key] = os.environ[env_key]
+    for key in (
+        "client_id",
+        "client_secret",
+        "scope",
+        "redirect_uri",
+        "token_path",
+        "playlist_limit",
+        "timezone",
+    ):
+        env_key = f"SPOTIFY_{key.upper()}"
+        legacy_key = f"KEXP2SPOTIFY_{env_key}"
+        if env_key in os.environ:
+            values[f"spotify_{key}"] = os.environ[env_key]
+        elif legacy_key in os.environ:
+            values[f"spotify_{key}"] = os.environ[legacy_key]
     try:
         return Settings.model_validate(values)
     except ValidationError as exc:

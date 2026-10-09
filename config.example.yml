@@ -4,3 +4,10 @@ deduplication_window: 100
 database_path: "data/kexp.sqlite3"
 request_timeout_seconds: 10
 config_file: "config.yml"
+spotify_client_id: "replace-with-spotify-client-id"
+spotify_client_secret: null
+spotify_scope: "playlist-read-private playlist-read-collaborative playlist-modify-public playlist-modify-private ugc-image-upload"
+spotify_redirect_uri: "http://127.0.0.1:8765/callback"
+spotify_token_path: "/absolute/path/to/spotify-token.json"
+spotify_playlist_limit: 50
+spotify_timezone: "Europe/Madrid"
