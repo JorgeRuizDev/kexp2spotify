@@ -14,3 +14,8 @@ spotify_timezone: "Europe/Madrid"
 telegram_bot_token: null
 telegram_chat_id: null
 notification_timeout_seconds: 10
+log_file_path: "data/kexp2spotify.log"
+log_level: "INFO"
+log_file_max_bytes: 10485760
+log_file_backup_count: 5
+log_console: true

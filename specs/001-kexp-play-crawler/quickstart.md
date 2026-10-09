@@ -3,9 +3,9 @@
 ## Prerequisites
 
 - Python 3.11 or newer.
-- Dependencias del proyecto instaladas.
-- Acceso de red a la URL configurada de KEXP.
-- Un archivo YAML de configuración.
+- Project dependencies installed.
+- Network access to the configured KEXP URL.
+- A YAML configuration file.
 
 ## Example configuration
 
@@ -18,6 +18,11 @@ deduplication_window: 100
 database_path: "data/kexp.sqlite3"
 request_timeout_seconds: 10
 config_file: "config.yml"
+log_file_path: "data/kexp2spotify.log"
+log_level: "INFO"
+log_file_max_bytes: 10485760
+log_file_backup_count: 5
+log_console: true
 ```
 
 ## Validation scenarios
@@ -29,6 +34,7 @@ config_file: "config.yml"
 5. **Provider failure**: make the HTTP adapter return a timeout or non-2xx response; verify a non-zero exit code and no partial batch commit.
 6. **Window behavior**: prefill more than N records, return one `track_id` in the recent window and one outside it, and verify only the expected candidate is inserted according to the configured N-window rule.
 7. **End-to-end**: run against a controlled HTTP fixture and a temporary SQLite database, then query persisted fields and `raw_json` as the next pipeline step would.
+8. **Logging**: set `log_file_path` to a temporary nested path, run the CLI, and verify that the file is created with timestamped records. Set `KEXP2SPOTIFY_LOG_LEVEL=DEBUG` and verify that the environment override takes precedence over YAML.
 
 ## Cron validation
 

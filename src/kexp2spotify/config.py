@@ -35,13 +35,26 @@ class Settings(BaseModel):
     telegram_bot_token: str | None = None
     telegram_chat_id: str | None = None
     notification_timeout_seconds: float = Field(default=10, gt=0)
+    log_file_path: Path = Path("data/kexp2spotify.log")
+    log_level: str = "INFO"
+    log_file_max_bytes: int = Field(default=10_485_760, gt=0)
+    log_file_backup_count: int = Field(default=5, ge=0)
+    log_console: bool = True
 
-    @field_validator("database_path", "config_file")
+    @field_validator("database_path", "config_file", "log_file_path")
     @classmethod
     def non_empty_path(cls, value: Path) -> Path:
         if not str(value):
             raise ValueError("path must not be empty")
         return value
+
+    @field_validator("log_level")
+    @classmethod
+    def valid_log_level(cls, value: str) -> str:
+        normalized = value.strip().upper()
+        if normalized not in {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}:
+            raise ValueError("log_level must be DEBUG, INFO, WARNING, ERROR, or CRITICAL")
+        return normalized
 
     @field_validator(
         "spotify_client_id", "spotify_client_secret", "spotify_scope", "spotify_timezone"
@@ -83,6 +96,11 @@ def load_settings(config_path: str | Path | None = None) -> Settings:
         "deduplication_window",
         "database_path",
         "request_timeout_seconds",
+        "log_file_path",
+        "log_level",
+        "log_file_max_bytes",
+        "log_file_backup_count",
+        "log_console",
     ):
         env_key = f"KEXP2SPOTIFY_{key.upper()}"
         if env_key in os.environ:

@@ -69,12 +69,20 @@ class SpotifyClient:
     def read_playlist_items(self, playlist_id: str) -> list[DestinationItem]:
         result: list[DestinationItem] = []
         url: str | None = (
-            f"/playlists/{playlist_id}/items?limit=50&fields=items(item(track(uri,id)),added_at),next"
+            # The current playlist-items endpoint exposes the track directly
+            # below `item`.  Asking for `item(track(...))` makes Spotify omit
+            # the URI, so reconciliation believes the playlist is empty and
+            # appends the same tracks on every run.
+            f"/playlists/{playlist_id}/items?limit=50&fields=items(item(uri,id)),next"
         )
         while url:
             body = self._request("GET", url).json()
             for position, item in enumerate(body.get("items", []), start=len(result)):
                 track = item.get("item") or item.get("track") or {}
+                # Keep compatibility with the legacy response shape while
+                # preferring the current `item` shape above.
+                if isinstance(track, dict) and isinstance(track.get("track"), dict):
+                    track = track["track"]
                 uri = track.get("uri")
                 if uri:
                     result.append(

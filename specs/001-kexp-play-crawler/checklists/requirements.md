@@ -31,6 +31,6 @@
 
 ## Notes
 
-- La especificación deja M y N configurables y asume `track_id` como identificador de deduplicación, coherente con el ejemplo proporcionado.
-- La integración con Spotify y la gestión de playlists quedan fuera del alcance de esta feature.
-- Estos dos criterios quedan pendientes porque el usuario ha solicitado explícitamente `pydantic-settings` y una estrategia concreta de configuración YAML + variables de entorno; deben conservarse como restricción técnica para la planificación.
+- The specification leaves M and N configurable and assumes `track_id` as the deduplication identifier, consistent with the provided example.
+- Spotify integration and playlist management are outside the scope of this feature.
+- These two criteria remain pending because the user explicitly requested `pydantic-settings` and a specific YAML-plus-environment-variable configuration strategy; they must be retained as a technical constraint for planning.

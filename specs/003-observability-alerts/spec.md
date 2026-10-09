@@ -1,4 +1,4 @@
-# Feature Specification: Observabilidad y alertas de ejecuciones
+# Feature Specification: Run Observability and Alerts
 
 **Feature Branch**: `003-observability-alerts`
 
@@ -6,101 +6,101 @@
 
 **Status**: Draft
 
-**Input**: User description: "Añade observabilidad a este proyecto. Quiero que la primera ejecución de un día me envíe un mensaje con un resumen del día anterior. Y quiero que si una ejecución falla después de 3 retries, me llegue un mensaje con la traza de error."
+**Input**: User description: "Add observability to this project. I want the first run of a day to send me a message summarizing the previous day. I also want a message with the error traceback if a run fails after 3 retries."
 
 ## User Scenarios & Testing *(mandatory)*
 
-### User Story 1 - Recibir el resumen diario (Priority: P1)
+### User Story 1 - Receive the daily summary (Priority: P1)
 
-Como operador del proceso programado, quiero recibir un resumen de las ejecuciones del día anterior en la primera ejecución de cada día para conocer rápidamente el estado de la operación sin revisar los logs manualmente.
+As the scheduled-process operator, I want to receive a summary of the previous day's runs on the first run of each day so that I can quickly understand the operational state without manually reviewing logs.
 
-**Why this priority**: Proporciona visibilidad proactiva del funcionamiento normal y permite detectar ausencia de ejecuciones o resultados inesperados.
+**Why this priority**: It provides proactive visibility into normal operation and makes missing runs or unexpected results detectable.
 
-**Independent Test**: Registrar ejecuciones de un día anterior, ejecutar el proceso por primera vez en un nuevo día y comprobar que el operador recibe un único resumen con los totales correctos.
+**Independent Test**: Record runs from a previous day, run the process for the first time on a new day, and verify that the operator receives one summary with the correct totals.
 
 **Acceptance Scenarios**:
 
-1. **Given** existen ejecuciones del día anterior y no se ha enviado todavía su resumen, **When** comienza la primera ejecución del día actual, **Then** el operador recibe un mensaje con el número de ejecuciones correctas y fallidas, canciones recibidas y nuevas, y cambios realizados en el destino.
-2. **Given** el resumen del día anterior ya fue enviado, **When** se ejecutan de nuevo una o más ejecuciones durante el mismo día, **Then** no se envía otro resumen diario.
-3. **Given** no hubo ejecuciones el día anterior, **When** comienza la primera ejecución del día actual, **Then** el operador recibe un resumen que indica cero ejecuciones y cero resultados.
+1. **Given** runs exist for the previous day and its summary has not yet been sent, **When** the first run of the current day begins, **Then** the operator receives a message with successful and failed run counts, received and new songs, and changes made at the destination.
+2. **Given** the previous day's summary has already been sent, **When** one or more runs execute again during the same day, **Then** no additional daily summary is sent.
+3. **Given** there were no runs on the previous day, **When** the first run of the current day begins, **Then** the operator receives a summary showing zero runs and zero results.
 
 ---
 
-### User Story 2 - Recibir alertas de fallos definitivos (Priority: P1)
+### User Story 2 - Receive permanent-failure alerts (Priority: P1)
 
-Como operador del proceso programado, quiero recibir una alerta cuando una ejecución no pueda completarse tras sus reintentos para poder diagnosticarla y actuar sin depender de la observación continua del programador.
+As the scheduled-process operator, I want to receive an alert when a run cannot complete after its retries so that I can diagnose it and act without continuously monitoring the scheduler.
 
-**Why this priority**: Los fallos silenciosos pueden dejar desactualizada la colección o las playlists; una alerta accionable reduce el tiempo hasta la recuperación.
+**Why this priority**: Silent failures can leave the collection or playlists outdated; an actionable alert reduces time to recovery.
 
-**Independent Test**: Forzar un fallo repetible, comprobar que se realizan tres reintentos después del intento inicial y verificar que se envía un único mensaje con el comando, el número de intentos y la traza del error.
+**Independent Test**: Force a repeatable failure, verify that three retries occur after the initial attempt, and verify that one message is sent with the command, attempt count, and error traceback.
 
 **Acceptance Scenarios**:
 
-1. **Given** una ejecución falla de forma transitoria, **When** el fallo ocurre antes de agotar los reintentos, **Then** el proceso vuelve a intentarlo y no envía una alerta de fallo definitivo.
-2. **Given** una ejecución falla en el intento inicial y en sus tres reintentos, **When** termina el cuarto intento, **Then** el operador recibe un mensaje con el contexto de la ejecución y la traza del error, y el proceso termina con estado fallido.
-3. **Given** una ejecución termina correctamente después de un reintento, **When** finaliza el proceso, **Then** no se envía una alerta de fallo y el historial refleja que la ejecución terminó correctamente.
+1. **Given** a run fails transiently, **When** the failure occurs before retries are exhausted, **Then** the process tries again and does not send a permanent-failure alert.
+2. **Given** a run fails on the initial attempt and all three retries, **When** the fourth attempt ends, **Then** the operator receives a message with run context and the error traceback, and the process ends in a failed state.
+3. **Given** a run succeeds after a retry, **When** the process ends, **Then** no failure alert is sent and the history shows that the run completed successfully.
 
 ---
 
-### User Story 3 - Mantener diagnósticos seguros y resilientes (Priority: P2)
+### User Story 3 - Keep diagnostics safe and resilient (Priority: P2)
 
-Como operador, quiero que la observabilidad no exponga credenciales ni convierta un problema del canal de avisos en un fallo adicional del proceso.
+As an operator, I want observability not to expose credentials or turn a notification-channel problem into an additional process failure.
 
-**Why this priority**: La información de diagnóstico debe ser útil sin aumentar el riesgo de seguridad ni impedir que el proceso complete su trabajo.
+**Why this priority**: Diagnostic information must be useful without increasing security risk or preventing the process from completing its work.
 
-**Independent Test**: Simular un error del canal de mensajería y revisar que la ejecución conserva su resultado original, que el error queda registrado de forma segura y que no aparecen tokens o credenciales en mensajes ni logs.
+**Independent Test**: Simulate a messaging-channel error and verify that the run retains its original result, the error is recorded safely, and no tokens or credentials appear in messages or logs.
 
 **Acceptance Scenarios**:
 
-1. **Given** el canal de notificación no está configurado o no está disponible, **When** se completa o falla una ejecución, **Then** el proceso conserva su código de salida y registra que el aviso no pudo enviarse sin revelar secretos.
-2. **Given** la traza contiene información sensible o es demasiado extensa para el canal, **When** se construye la alerta, **Then** las credenciales se ocultan y la traza se limita a un tamaño seguro manteniendo el contexto principal.
+1. **Given** the notification channel is not configured or unavailable, **When** a run completes or fails, **Then** the process retains its exit code and records that the notification could not be sent without revealing secrets.
+2. **Given** the traceback contains sensitive information or is too long for the channel, **When** the alert is built, **Then** credentials are masked and the traceback is limited to a safe size while preserving the main context.
 
 ### Edge Cases
 
-- La primera ejecución del día se produce después de uno o más días sin ejecuciones; el resumen corresponde únicamente al día natural inmediatamente anterior.
-- El proceso se ejecuta varias veces cerca del cambio de día; solo una ejecución debe reclamar el envío del resumen para cada día.
-- El envío del resumen falla; una ejecución posterior debe poder volver a intentarlo sin duplicar un envío confirmado.
-- Una ejecución falla después de haber completado parcialmente una operación; los reintentos no deben generar duplicados ni alterar el estado confirmado de ejecuciones previas.
-- El reloj local y UTC cruzan una fecha distinta; la fecha del resumen debe seguir la zona horaria operativa configurada.
+- The first run of the day occurs after one or more days without runs; the summary covers only the immediately preceding calendar day.
+- The process runs several times near the day boundary; only one run should claim summary delivery for each day.
+- Summary delivery fails; a later run must be able to retry it without duplicating a confirmed delivery.
+- A run fails after partially completing an operation; retries must not create duplicates or alter the confirmed state of previous runs.
+- Local time and UTC cross different dates; the summary date must follow the configured operational timezone.
 
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
 
-- **FR-001**: El sistema MUST conservar un historial consultable de cada ejecución, incluyendo fecha operativa, comando, estado, número de intentos, duración y contadores relevantes del procesamiento.
-- **FR-002**: El sistema MUST identificar la primera ejecución de cada día usando la zona horaria operativa configurada.
-- **FR-003**: En la primera ejecución de un día, el sistema MUST enviar un resumen de las ejecuciones del día natural anterior.
-- **FR-004**: El resumen diario MUST incluir como mínimo ejecuciones totales, ejecuciones correctas, ejecuciones fallidas, canciones recibidas, canciones nuevas y cambios realizados en el destino.
-- **FR-005**: El sistema MUST enviar como máximo un resumen diario confirmado para cada día resumido.
-- **FR-006**: Si una ejecución falla, el sistema MUST realizar un intento inicial y hasta tres reintentos antes de declararla definitivamente fallida.
-- **FR-007**: Si una ejecución continúa fallando tras los tres reintentos, el sistema MUST enviar una alerta con el comando, el número total de intentos y una traza diagnóstica del error.
-- **FR-008**: Si una ejecución tiene éxito después de un reintento, el sistema MUST registrar el resultado correcto y MUST NOT enviar una alerta de fallo definitivo.
-- **FR-009**: El sistema MUST permitir configurar de forma segura el destino de las notificaciones y el tiempo de espera para su entrega.
-- **FR-010**: El sistema MUST ocultar credenciales, tokens y otros secretos de los mensajes, trazas y logs enviados por la funcionalidad.
-- **FR-011**: Un fallo del canal de notificación MUST NOT cambiar el código de salida ni el resultado de la ejecución que originó el aviso.
-- **FR-012**: El sistema MUST permitir reintentar el envío de un resumen que no haya sido confirmado como entregado, sin duplicar resúmenes ya confirmados.
+- **FR-001**: The system MUST retain a queryable history of every run, including operational date, command, status, attempt count, duration, and relevant processing counters.
+- **FR-002**: The system MUST identify the first run of each day using the configured operational timezone.
+- **FR-003**: On the first run of a day, the system MUST send a summary of runs from the previous calendar day.
+- **FR-004**: The daily summary MUST include at least total runs, successful runs, failed runs, received songs, new songs, and changes made at the destination.
+- **FR-005**: The system MUST send at most one confirmed daily summary for each summarized day.
+- **FR-006**: If a run fails, the system MUST make an initial attempt and up to three retries before declaring it permanently failed.
+- **FR-007**: If a run continues to fail after three retries, the system MUST send an alert with the command, total attempt count, and a diagnostic error traceback.
+- **FR-008**: If a run succeeds after a retry, the system MUST record the successful result and MUST NOT send a permanent-failure alert.
+- **FR-009**: The system MUST allow the notification destination and delivery timeout to be configured securely.
+- **FR-010**: The system MUST hide credentials, tokens, and other secrets from messages, tracebacks, and logs emitted by the feature.
+- **FR-011**: A notification-channel failure MUST NOT change the exit code or result of the run that triggered the notification.
+- **FR-012**: The system MUST allow retrying delivery of a summary not confirmed as delivered without duplicating already confirmed summaries.
 
 ### Key Entities
 
-- **Registro de ejecución**: Resultado de una ejecución programada, con su fecha operativa, comando, estado, intentos, contadores y posible diagnóstico de error.
-- **Resumen diario**: Agregación de los registros de ejecución correspondientes a un día operativo y mensaje asociado a ese día.
-- **Estado de notificación**: Marca que indica si un resumen diario fue enviado y confirmado, para garantizar la idempotencia.
-- **Alerta de fallo**: Mensaje dirigido al operador cuando una ejecución agotó sus reintentos, incluyendo contexto y diagnóstico seguro.
+- **Run record**: Result of a scheduled run, with its operational date, command, status, attempts, counters, and possible error diagnostic.
+- **Daily summary**: Aggregation of run records for an operational day and the message associated with that day.
+- **Notification status**: Marker indicating whether a daily summary was sent and confirmed, guaranteeing idempotency.
+- **Failure alert**: Message addressed to the operator when a run exhausts its retries, including context and a safe diagnostic.
 
 ## Success Criteria *(mandatory)*
 
 ### Measurable Outcomes
 
-- **SC-001**: El 100% de las primeras ejecuciones de un día con un canal configurado generan un resumen del día anterior, sin más de un resumen confirmado por día resumido.
-- **SC-002**: El 100% de los fallos persistentes generan una alerta después de exactamente cuatro intentos totales: uno inicial y tres reintentos.
-- **SC-003**: Al menos el 99% de los mensajes de fallo contienen el comando, el número de intentos y una traza utilizable, sin credenciales detectables.
-- **SC-004**: Un fallo del canal de notificación no cambia el código de salida ni impide completar el registro de la ejecución en el 100% de los casos comprobables.
-- **SC-005**: Una ejecución que se recupera durante los reintentos no genera ninguna alerta de fallo definitivo.
+- **SC-001**: 100% of first runs on a day with a configured channel generate a summary of the previous day, with no more than one confirmed summary per summarized day.
+- **SC-002**: 100% of persistent failures generate an alert after exactly four total attempts: one initial attempt and three retries.
+- **SC-003**: At least 99% of failure messages contain the command, attempt count, and a usable traceback, with no detectable credentials.
+- **SC-004**: A notification-channel failure does not change the exit code or prevent completion of the run record in 100% of verifiable cases.
+- **SC-005**: A run that recovers during retries generates no permanent-failure alert.
 
 ## Assumptions
 
-- El operador dispone de un canal de mensajería configurado y de las credenciales necesarias para enviar mensajes.
-- Telegram es el canal de notificación inicial soportado por el producto; el diseño del requisito no impide añadir otros canales posteriormente.
-- La zona horaria operativa existente del proyecto se utiliza para determinar los días naturales de los resúmenes.
-- Los datos de historial y estado de notificación se conservan junto con los datos operativos existentes; las políticas de retención de largo plazo quedan fuera de esta funcionalidad.
-- Los reintentos se aplican a las ejecuciones programadas de recopilación y actualización, no al flujo interactivo de autorización.
+- The operator has a configured messaging channel and the credentials required to send messages.
+- Telegram is the initial notification channel supported by the product; the requirement design does not prevent adding other channels later.
+- The project's existing operational timezone is used to determine calendar days for summaries.
+- History and notification-status data are retained alongside existing operational data; long-term retention policies are outside this feature.
+- Retries apply to scheduled collection and update runs, not to the interactive authorization flow.

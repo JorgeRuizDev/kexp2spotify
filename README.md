@@ -17,9 +17,11 @@ The same command is suitable for cron. Use absolute paths for the config and dat
 
 The process exits `0` for a completed run (including no new records) and `1` for configuration, source, or persistence failures. Logs contain phase and summary counts but never the full provider payload.
 
-## Observabilidad y avisos
+Each run writes timestamped logs to `data/kexp2spotify.log` by default. The destination, level (`DEBUG`, `INFO`, `WARNING`, `ERROR`, or `CRITICAL`), rotation size, number of rotated files, and console output can be configured in YAML with `log_file_path`, `log_level`, `log_file_max_bytes`, `log_file_backup_count`, and `log_console`. Each field also accepts a `KEXP2SPOTIFY_<FIELD>` environment override, for example `KEXP2SPOTIFY_LOG_FILE_PATH`.
 
-Las ejecuciones guardan su historial en SQLite. La primera ejecución de cada día (según `spotify_timezone`) envía a Telegram un resumen del día anterior. Si una ejecución falla, se reintenta tres veces; tras el cuarto intento se envía el error con su traza. Configura `telegram_bot_token` y `telegram_chat_id` en YAML o mediante `KEXP2SPOTIFY_TELEGRAM_BOT_TOKEN` y `KEXP2SPOTIFY_TELEGRAM_CHAT_ID`. Si Telegram no está configurado, el proceso sigue funcionando y deja el diagnóstico en el log.
+## Observability and alerts
+
+Runs keep their history in SQLite. The first run of each day (according to `spotify_timezone`) sends Telegram a summary of the previous day. If a run fails, it is retried three times; after the fourth attempt, the error and its traceback are sent. Configure `telegram_bot_token` and `telegram_chat_id` in YAML or through `KEXP2SPOTIFY_TELEGRAM_BOT_TOKEN` and `KEXP2SPOTIFY_TELEGRAM_CHAT_ID`. If Telegram is not configured, the process continues to work and records the diagnostic in the log.
 
 ## Spotify
 

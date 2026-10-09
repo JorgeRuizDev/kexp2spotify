@@ -18,7 +18,7 @@ description: "Task list for implementing the KEXP Play Crawler"
 - [X] T001 Update `pyproject.toml` with runtime dependencies `pydantic`, `pydantic-settings[yaml]`, and `httpx`, plus development dependencies `pytest`, `pytest-httpx`, `mypy`, `ruff`, and `types-PyYAML`
 - [X] T002 [P] Create the package and test directories `src/kexp2spotify/`, `tests/unit/`, `tests/contract/`, and `tests/integration/`, including required `__init__.py` files
 - [X] T003 [P] Configure `pytest`, `mypy`, and `ruff` settings in `pyproject.toml` for Python 3.11+, `src/`, and `tests/`
-- [X] T004 [P] Add `config.example.yml` with `kexp_plays_url`, `fetch_limit`, `deduplication_window`, `database_path`, `request_timeout_seconds`, and `config_file` examples
+- [X] T004 [P] Add `config.example.yml` with crawler and logging settings, including `log_file_path`, `log_level`, rotation limits, and `log_console`
 
 ---
 
@@ -34,13 +34,13 @@ description: "Task list for implementing the KEXP Play Crawler"
 - [X] T008 [P] Add configuration unit tests in `tests/unit/test_config.py` covering YAML loading, environment overrides, precedence, missing YAML, malformed YAML, and invalid values
 - [X] T009 Implement SQLite schema initialization and connection lifecycle in `src/kexp2spotify/sqlite_repository.py`, including a unique `track_id`, fields from `data-model.md`, serialized `raw_json`, and indexes needed for newest-by-`captured_at` queries
 - [X] T010 [P] Add repository schema/invariant integration tests in `tests/integration/test_sqlite_repository.py`, including unique `track_id`, nullable metadata, raw JSON round-trip, and transaction rollback
-- [X] T011 Create typed application errors and safe logging setup in `src/kexp2spotify/errors.py` and `src/kexp2spotify/logging.py`, ensuring logs expose phase and counts without secrets or full raw payloads
+- [X] T011 Create typed application errors and safe logging setup in `src/kexp2spotify/errors.py` and `src/kexp2spotify/logging.py`, including timestamped rotating file output, configurable level/path/console behavior, and no secrets or full raw payloads
 
 **Checkpoint**: Configuration, domain contracts, and a transactional SQLite foundation are ready.
 
 ---
 
-## Phase 3: User Story 1 - Recopilar nuevas canciones emitidas (Priority: P1) 🎯 MVP
+## Phase 3: User Story 1 - Collect newly aired songs (Priority: P1) 🎯 MVP
 
 **Goal**: Fetch recent KEXP plays, keep only valid `trackplay` items, and persist new songs for the next pipeline step.
 
@@ -63,7 +63,7 @@ description: "Task list for implementing the KEXP Play Crawler"
 
 ---
 
-## Phase 4: User Story 2 - Evitar duplicados entre ejecuciones (Priority: P1)
+## Phase 4: User Story 2 - Avoid duplicates across runs (Priority: P1)
 
 **Goal**: Compare incoming `track_id` values with the N most recently stored songs and avoid duplicates within and across executions while retaining all history.
 
@@ -85,7 +85,7 @@ description: "Task list for implementing the KEXP Play Crawler"
 
 ---
 
-## Phase 5: User Story 3 - Reanudar de forma segura tras fallos (Priority: P2)
+## Phase 5: User Story 3 - Resume safely after failures (Priority: P2)
 
 **Goal**: Make source, validation, and persistence failures observable and safe to retry without corrupting confirmed data or committing a partial batch.
 

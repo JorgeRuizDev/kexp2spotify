@@ -40,6 +40,7 @@ def main(argv: list[str] | None = None) -> int:
     repository: SQLiteRepository | None = None
     try:
         settings = load_settings(args.config)
+        logger = configure_logging(settings)
         if args.command == "spotify-login":
             SpotifyAuthenticator(settings).authorize_interactive()
             logger.info("spotify login completed without exposing credentials")

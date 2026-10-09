@@ -6,27 +6,27 @@
 
 ## Summary
 
-Construir un crawler ejecutable por cronjob que consulte las reproducciones recientes de KEXP, filtre exclusivamente `trackplay`, deduplicate por `track_id` contra las N canciones más recientes y persista las nuevas junto con sus metadatos y JSON original en SQLite. La configuración se cargará siempre desde YAML y se combinará con variables de entorno de mayor precedencia mediante `pydantic-settings`. El diseño separa configuración, adaptador HTTP, dominio de canciones, caso de uso de deduplicación y repositorio SQLite.
+Build a cron-executable crawler that queries recent KEXP plays, filters exclusively for `trackplay`, deduplicates by `track_id` against the latest N songs, and persists new songs with their metadata and original JSON in SQLite. Configuration will always be loaded from YAML and combined with higher-precedence environment variables through `pydantic-settings`. The process also writes timestamped, safe, rotating operational logs with configurable file path, level, retention, and console output. The design separates configuration, the HTTP adapter, the song domain, the deduplication use case, and the SQLite repository.
 
 ## Technical Context
 
-**Language/Version**: Python >=3.11 (ya fijado en `pyproject.toml`)
+**Language/Version**: Python >=3.11 (already fixed in `pyproject.toml`)
 
-**Primary Dependencies**: `pydantic`/`pydantic-settings` con soporte YAML, `PyYAML`, `httpx`, `pytest`, `pytest-httpx`, `mypy` y `ruff`
+**Primary Dependencies**: `pydantic`/`pydantic-settings` with YAML support, `PyYAML`, `httpx`, `pytest`, `pytest-httpx`, `mypy`, and `ruff`
 
-**Storage**: SQLite mediante la biblioteca estándar `sqlite3`; JSON completo serializado en una columna de texto
+**Storage**: SQLite through the standard-library `sqlite3`; complete JSON serialized in a text column
 
-**Testing**: `pytest` para unitarias e integración; dobles HTTP para el contrato KEXP; `mypy` y `ruff` como controles estáticos
+**Testing**: `pytest` for unit and integration tests; HTTP doubles for the KEXP contract; `mypy` and `ruff` as static checks
 
-**Target Platform**: Proceso Python no interactivo en servidor Linux invocado por cronjob
+**Target Platform**: Non-interactive Python process on a Linux server invoked by cron
 
 **Project Type**: CLI/proceso batch interno
 
-**Performance Goals**: Procesar hasta M reproducciones y finalizar en menos de 60 segundos en condiciones normales; una única consulta por ejecución salvo que la respuesta requiera paginación
+**Performance Goals**: Process up to M plays and finish in under 60 seconds under normal conditions; one query per run unless the response requires pagination
 
-**Constraints**: YAML obligatorio; variables de entorno sobrescriben YAML; no modificar SQLite si la consulta o validación de respuesta falla; URLs, M, N, timeout y ruta de SQLite configurables
+**Constraints**: Mandatory YAML; environment variables override YAML; do not modify SQLite if the query or response validation fails; configurable URLs, M, N, timeout, SQLite path, and logging destination/level/rotation
 
-**Scale/Scope**: Una radio, ejecuciones periódicas, SQLite local, volumen histórico creciente y respuestas acotadas por M; sin API web ni integración con Spotify en esta feature
+**Scale/Scope**: One station, periodic runs, local SQLite, growing historical volume, and responses bounded by M; no web API or Spotify integration in this feature
 
 ## Constitution Check
 
@@ -34,11 +34,11 @@ Construir un crawler ejecutable por cronjob que consulte las reproducciones reci
 
 *GATE: PASS*
 
-- **SOLID y responsabilidades claras**: configuración, fuente KEXP, dominio, caso de uso y persistencia se diseñan como componentes sustituibles.
-- **Tipado estático**: todas las interfaces públicas y modelos tendrán anotaciones; el plan incluye `mypy`.
-- **Origen/destino agnósticos**: KEXP y SQLite estarán detrás de puertos/adaptadores; el dominio no dependerá de su JSON ni de `sqlite3`.
-- **Integraciones comprobables**: el adaptador HTTP tendrá timeout, errores tipados, límite M y pruebas de contrato con doble HTTP.
-- **Pruebas proporcionales**: unitarias para deduplicación/configuración, contrato para KEXP e integración para SQLite y flujo completo.
+- **SOLID and clear responsibilities**: configuration, KEXP source, domain, use case, and persistence are designed as replaceable components.
+- **Static typing**: all public interfaces and models will have annotations; the plan includes `mypy`.
+- **Source/destination agnostic**: KEXP and SQLite will sit behind ports/adapters; the domain will not depend on their JSON or `sqlite3`.
+- **Testable integrations**: the HTTP adapter will have timeouts, typed errors, an M limit, and contract tests with an HTTP double.
+- **Proportional testing**: unit tests for deduplication/configuration, contract tests for KEXP, and integration tests for SQLite and the complete flow.
 
 ## Project Structure
 
@@ -60,13 +60,13 @@ specs/[###-feature]/
 ```text
 src/
 └── kexp2spotify/
-    ├── config.py          # YAML + entorno, validación tipada
-    ├── domain.py          # modelos y reglas sin dependencias externas
-    ├── ports.py           # contratos de fuente y repositorio
-    ├── kexp_client.py     # adaptador HTTP de KEXP
+    ├── config.py          # YAML + environment, typed validation
+    ├── domain.py          # models and rules without external dependencies
+    ├── ports.py           # source and repository contracts
+    ├── kexp_client.py     # KEXP HTTP adapter
     ├── sqlite_repository.py
-    ├── crawler.py         # caso de uso/orquestación
-    └── cli.py             # entrada de cronjob y códigos de salida
+    ├── crawler.py         # use case/orchestration
+    └── cli.py             # cron entry point and exit codes
 
 tests/
 ├── unit/
@@ -76,19 +76,19 @@ tests/
 config.example.yml
 ```
 
-**Structure Decision**: Proyecto Python único con paquete bajo `src/`, puertos explícitos para fuente y almacenamiento, adaptadores concretos separados y tests organizados por tipo de contrato. `main.py` podrá delegar en `kexp2spotify.cli` durante la implementación para conservar una entrada sencilla.
+**Structure Decision**: Single Python project with a package under `src/`, explicit source and storage ports, separate concrete adapters, and tests organized by contract type. `main.py` may delegate to `kexp2spotify.cli` during implementation to preserve a simple entry point.
 
 ## Constitution Check — Post-Design
 
 *GATE: PASS*
 
-- El modelo de dominio y los puertos no dependen de KEXP, SQLite, HTTPX ni del formato JSON externo.
-- La configuración queda aislada en un modelo tipado y se valida antes de crear efectos externos.
-- El adaptador de KEXP encapsula URL, límites, paginación, timeouts, respuestas HTTP y errores.
-- El repositorio SQLite encapsula esquema, índice único, ventana N y transacción de lote.
-- Las pruebas previstas cubren dominio, configuración, contrato HTTP, persistencia y ejecución completa.
-- No se detectan violaciones de SOLID, tipado estático, agnosticismo de origen/destino ni gates de calidad.
+- The domain model and ports do not depend on KEXP, SQLite, HTTPX, or the external JSON format.
+- Configuration is isolated in a typed model and validated before creating external effects.
+- The KEXP adapter encapsulates URL, limits, pagination, timeouts, HTTP responses, and errors.
+- The SQLite repository encapsulates schema, unique index, N window, and batch transaction.
+- Planned tests cover the domain, configuration, HTTP contract, persistence, and complete execution.
+- No violations of SOLID, static typing, source/destination agnosticism, or quality gates were detected.
 
 ## Complexity Tracking
 
-No hay violaciones de la constitución que requieran justificación.
+There are no constitutional violations requiring justification.

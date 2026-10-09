@@ -1,34 +1,34 @@
-# Specification Quality Checklist: Observabilidad y alertas de ejecuciones
+# Specification Quality Checklist: Run Observability and Alerts
 
-**Purpose**: Validar que la especificación de observabilidad y alertas es completa, clara y apta para planificación.
+**Purpose**: Validate that the observability and alerts specification is complete, clear, and ready for planning.
 **Created**: 2026-10-10
 **Feature**: [spec.md](../spec.md)
 
 ## Content Quality
 
-- [x] No contiene detalles de implementación innecesarios; describe comportamiento y valor operativo.
-- [x] Está centrada en las necesidades del operador y la continuidad del servicio.
-- [x] Puede entenderse sin conocer la estructura interna del código.
-- [x] Todas las secciones obligatorias están completadas.
+- [x] Contains no unnecessary implementation details; describes behavior and operational value.
+- [x] Focuses on operator needs and service continuity.
+- [x] Can be understood without knowing the internal code structure.
+- [x] All mandatory sections are complete.
 
 ## Requirement Completeness
 
-- [x] No quedan marcadores `[NEEDS CLARIFICATION]`.
-- [x] Los requisitos son comprobables y no ambiguos.
-- [x] Los criterios de éxito son medibles.
-- [x] Los criterios de éxito expresan resultados observables, no detalles de implementación.
-- [x] Todos los escenarios principales de aceptación están definidos.
-- [x] Se han identificado los casos límite relevantes.
-- [x] El alcance está acotado mediante supuestos explícitos.
-- [x] Las dependencias y condiciones operativas están identificadas.
+- [x] No `[NEEDS CLARIFICATION]` markers remain.
+- [x] Requirements are testable and unambiguous.
+- [x] Success criteria are measurable.
+- [x] Success criteria express observable outcomes, not implementation details.
+- [x] All main acceptance scenarios are defined.
+- [x] Relevant edge cases have been identified.
+- [x] Scope is bounded through explicit assumptions.
+- [x] Dependencies and operational conditions are identified.
 
 ## Feature Readiness
 
-- [x] Cada requisito funcional tiene comportamiento verificable en escenarios o criterios de éxito.
-- [x] Las historias cubren resumen diario, fallos definitivos y seguridad/resiliencia.
-- [x] La funcionalidad satisface los resultados medibles definidos.
-- [x] No se introducen detalles técnicos que restrinjan innecesariamente la solución.
+- [x] Each functional requirement has verifiable behavior in scenarios or success criteria.
+- [x] Stories cover daily summaries, permanent failures, and safety/resilience.
+- [x] The feature satisfies the defined measurable outcomes.
+- [x] No technical details unnecessarily constrain the solution.
 
 ## Notes
 
-- La especificación refleja el comportamiento implementado actualmente y queda lista para la fase de planificación.
+- The specification reflects the currently implemented behavior and is ready for the planning phase.
