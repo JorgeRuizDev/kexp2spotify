@@ -67,6 +67,12 @@ class SQLiteRepository:
                 sent_at TEXT NOT NULL
             )"""
         )
+        self.connection.execute(
+            """CREATE TABLE IF NOT EXISTS managed_playlists (
+                show_id TEXT PRIMARY KEY,
+                provider_playlist_id TEXT NOT NULL
+            )"""
+        )
         self.connection.commit()
 
     def close(self) -> None:
@@ -104,6 +110,29 @@ class SQLiteRepository:
                 return inserted
         except (sqlite3.Error, TypeError, ValueError) as exc:
             raise PersistenceError(f"batch persistence failed: {exc}") from exc
+
+    def get_playlist_id(self, show_id: str) -> str | None:
+        try:
+            row = self.connection.execute(
+                "SELECT provider_playlist_id FROM managed_playlists WHERE show_id = ?",
+                (show_id,),
+            ).fetchone()
+            return str(row[0]) if row is not None else None
+        except sqlite3.Error as exc:
+            raise PersistenceError(f"playlist ID lookup failed: {exc}") from exc
+
+    def save_playlist_id(self, show_id: str, playlist_id: str) -> None:
+        try:
+            with self.connection:
+                self.connection.execute(
+                    """INSERT INTO managed_playlists (show_id, provider_playlist_id)
+                    VALUES (?, ?)
+                    ON CONFLICT(show_id) DO UPDATE SET
+                        provider_playlist_id = excluded.provider_playlist_id""",
+                    (show_id, playlist_id),
+                )
+        except sqlite3.Error as exc:
+            raise PersistenceError(f"playlist ID persistence failed: {exc}") from exc
 
     def all_rows(self) -> list[sqlite3.Row]:
         self.connection.row_factory = sqlite3.Row

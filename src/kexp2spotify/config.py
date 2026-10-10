@@ -31,6 +31,7 @@ class Settings(BaseModel):
     spotify_redirect_uri: str | None = None
     spotify_token_path: Path | None = None
     spotify_playlist_limit: int = Field(default=50, gt=0)
+    spotify_playlist_public: bool = True
     spotify_timezone: str = "Europe/Madrid"
     telegram_bot_token: str | None = None
     telegram_chat_id: str | None = None
@@ -112,6 +113,7 @@ def load_settings(config_path: str | Path | None = None) -> Settings:
         "redirect_uri",
         "token_path",
         "playlist_limit",
+        "playlist_public",
         "timezone",
     ):
         env_key = f"SPOTIFY_{key.upper()}"

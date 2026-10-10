@@ -25,7 +25,12 @@ from .spotify_token_store import FileTokenStore
 
 AUTH_URL = "https://accounts.spotify.com/authorize"
 TOKEN_URL = "https://accounts.spotify.com/api/token"
-REQUIRED_SCOPES = {"playlist-read-private", "playlist-modify-public", "playlist-modify-private"}
+REQUIRED_SCOPES = {
+    "playlist-read-private",
+    "playlist-modify-public",
+    "playlist-modify-private",
+    "ugc-image-upload",
+}
 
 
 def generate_pkce() -> tuple[str, str]:
@@ -151,11 +156,17 @@ class SpotifyAuthenticator:
             raise SpotifyAuthenticationError(
                 "Spotify token response did not contain a refresh token"
             )
-        scope = set(str(payload.get("scope", self.settings.spotify_scope)).split())
+        if "scope" in payload:
+            scope = set(str(payload["scope"]).split())
+        elif previous is not None:
+            scope = set(previous.scope)
+        else:
+            scope = set(self.settings.spotify_scope.split())
         missing = REQUIRED_SCOPES - scope
         if missing:
             raise SpotifyScopeError(
-                f"Spotify authorization is missing required scopes: {sorted(missing)}"
+                "Spotify authorization is missing required scopes: "
+                f"{sorted(missing)}; run spotify-login to reauthorize"
             )
         state = AuthorizationState(
             client_id=self.settings.spotify_client_id or (previous.client_id if previous else ""),

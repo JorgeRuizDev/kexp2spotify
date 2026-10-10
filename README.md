@@ -39,6 +39,10 @@ Runs keep their history in SQLite. The first run of each day (according to `spot
 
 Copy the Spotify fields from [config.example.yml](config.example.yml) into the YAML file or use the `SPOTIFY_*` environment overrides. The Client ID and loopback redirect URI are required for Spotify commands; the Client Secret is optional for PKCE. Store the token outside the repository.
 
+New playlists are public and appear on the user's profile by default. Set
+`spotify_playlist_public: false` in YAML or `SPOTIFY_PLAYLIST_PUBLIC=false` to
+create private playlists instead.
+
 Run the interactive flow once:
 
 ```sh

@@ -10,6 +10,7 @@ spotify_scope: "playlist-read-private playlist-read-collaborative playlist-modif
 spotify_redirect_uri: "http://127.0.0.1:8765/callback"
 spotify_token_path: "/absolute/path/to/spotify-token.json"
 spotify_playlist_limit: 250
+spotify_playlist_public: true
 spotify_timezone: "Europe/Madrid"
 telegram_bot_token: null
 telegram_chat_id: null

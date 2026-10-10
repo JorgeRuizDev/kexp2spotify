@@ -12,12 +12,9 @@ import httpx
 from .config import Settings
 from .domain import ManagedPlaylist, Show
 from .ports import DestinationItem, MutationResult
+from .spotify_artwork import SPOTIFY_COVER_PAYLOAD_LIMIT
 from .spotify_http import SpotifyHttp
-from .spotify_metadata import (
-    DESCRIPTION_SUFFIX,
-    has_playlist_identity,
-    playlist_identity_marker,
-)
+from .spotify_metadata import has_playlist_identity, playlist_identity_marker
 
 API_URL = "https://api.spotify.com/v1"
 logger = logging.getLogger("kexp2spotify")
@@ -41,12 +38,7 @@ class SpotifyClient:
             response = self._request("GET", url)
             body = response.json()
             for item in body.get("items", []):
-                description = str(item.get("description") or "")
-                if (
-                    item.get("name") == expected_name
-                    and item.get("id")
-                    and description.endswith(DESCRIPTION_SUFFIX)
-                ):
+                if item.get("name") == expected_name and item.get("id"):
                     matches[str(item["id"])] = item
             url = body.get("next")
             if url and url.startswith(API_URL):
@@ -59,21 +51,21 @@ class SpotifyClient:
             for item in matches.values()
             if identity_marker in str(item.get("description") or "")
         ]
-        # Legacy app playlists have no stable show marker. Reuse one
-        # deterministically, then update_details writes the association so
-        # later runs can distinguish shows with the same display name.
+        # Prefer a playlist already marked for this show. Older playlists do
+        # not have a marker, so adopt one deterministically when available.
         candidates = identified or [
             item
             for item in matches.values()
             if not has_playlist_identity(str(item.get("description") or ""))
         ]
+        candidates.sort(key=lambda item: str(item["id"]))
         if not candidates:
             return None
-        candidates.sort(key=lambda item: str(item["id"]))
         if len(candidates) > 1:
             logger.warning(
-                "multiple managed playlists match show %s; reusing playlist %s from %s",
+                "multiple playlists match show %s and name %r; reusing playlist %s from %s",
                 show_id,
+                expected_name,
                 candidates[0]["id"],
                 ", ".join(str(item["id"]) for item in candidates),
             )
@@ -89,7 +81,11 @@ class SpotifyClient:
         response = self._request(
             "POST",
             "/me/playlists",
-            json={"name": name, "description": description, "public": False},
+            json={
+                "name": name,
+                "description": description,
+                "public": self.settings.spotify_playlist_public,
+            },
         )
         body = response.json()
         return ManagedPlaylist(
@@ -178,9 +174,11 @@ class SpotifyClient:
         return str(items[0]["uri"]) if items and items[0].get("uri") else None
 
     def update_cover(self, playlist_id: str, image_bytes: bytes) -> MutationResult:
-        if len(image_bytes) > 256 * 1024 or not image_bytes.startswith(b"\xff\xd8\xff"):
+        if not image_bytes.startswith(b"\xff\xd8\xff"):
             return MutationResult(changed=False)
         encoded = base64.b64encode(image_bytes)
+        if len(encoded) > SPOTIFY_COVER_PAYLOAD_LIMIT:
+            return MutationResult(changed=False)
         response = self._request(
             "PUT",
             f"/playlists/{playlist_id}/images",

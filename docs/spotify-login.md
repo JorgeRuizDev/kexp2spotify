@@ -27,8 +27,13 @@ SPOTIFY_SCOPE='playlist-read-private playlist-read-collaborative playlist-modify
 SPOTIFY_REDIRECT_URI='http://127.0.0.1:PORT/callback'
 SPOTIFY_TOKEN_PATH=/absolute/path/to/spotify-token.json
 SPOTIFY_PLAYLIST_LIMIT=50
+SPOTIFY_PLAYLIST_PUBLIC=true
 SPOTIFY_TIMEZONE=Europe/Madrid
 ```
+
+`spotify_playlist_public` defaults to `true`. New playlists will be public and
+appear on the user's profile. Set it to `false` (or set
+`SPOTIFY_PLAYLIST_PUBLIC=false`) to create private playlists instead.
 
 The scopes mean:
 

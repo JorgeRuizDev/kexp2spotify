@@ -4,10 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Sequence
 from datetime import datetime
-from io import BytesIO
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
-
-from PIL import Image, UnidentifiedImageError
 
 from .config import Settings
 from .domain import (
@@ -19,8 +16,9 @@ from .domain import (
     SynchronizationResult,
 )
 from .errors import ConfigurationError, SpotifyProviderError
-from .ports import DestinationItem, PlaylistDestination
-from .spotify_metadata import DESCRIPTION_SUFFIX, playlist_identity_marker
+from .ports import DestinationItem, PlaylistDestination, PlaylistIdStore
+from .spotify_artwork import prepare_cover
+from .spotify_metadata import DESCRIPTION_SUFFIX
 
 
 def playlist_name(show_name: str) -> str:
@@ -30,18 +28,15 @@ def playlist_name(show_name: str) -> str:
     return f"KEXP - {normalized}"
 
 
-def playlist_description(
-    now: datetime, timezone_name: str, show_id: str | None = None
-) -> str:
+def playlist_description(now: datetime, timezone_name: str) -> str:
     try:
         zone = ZoneInfo(timezone_name)
     except ZoneInfoNotFoundError as exc:
         raise ConfigurationError(f"invalid Spotify timezone: {timezone_name}") from exc
     local = now.astimezone(zone)
-    identity = f" {playlist_identity_marker(show_id)}" if show_id else ""
     return (
         f"Last updated at {local:%H:%M} on {local:%d-%m-%Y} "
-        f"({timezone_name}){identity}{DESCRIPTION_SUFFIX}"
+        f"({timezone_name}){DESCRIPTION_SUFFIX}"
     )
 
 
@@ -106,16 +101,24 @@ def reconcile_show(
     settings: Settings,
     now: datetime,
     image_bytes: bytes | None = None,
+    playlist_store: PlaylistIdStore | None = None,
 ) -> SynchronizationResult:
-    description = playlist_description(
-        now, show.timezone or settings.spotify_timezone, show.id
-    )
+    description = playlist_description(now, show.timezone or settings.spotify_timezone)
     name = playlist_name(show.name)
-    playlist = destination.find_managed_playlist(show.id, name)
+    stored_playlist_id = (
+        playlist_store.get_playlist_id(show.id) if playlist_store is not None else None
+    )
+    playlist = (
+        ManagedPlaylist(show_id=show.id, provider_playlist_id=stored_playlist_id, name=name)
+        if stored_playlist_id
+        else destination.find_managed_playlist(show.id, name)
+    )
     created = 0
     if playlist is None:
         playlist = destination.create_playlist(show, name, description)
         created = 1
+    if playlist_store is not None:
+        playlist_store.save_playlist_id(show.id, playlist.provider_playlist_id)
     playlist, appended, removed, skipped = reconcile_queue(
         destination, playlist, items, settings.spotify_playlist_limit
     )
@@ -170,7 +173,7 @@ def apply_cover(
 
     if not image_bytes:
         return ImageState.UNAVAILABLE
-    image_bytes = _jpeg_cover(image_bytes)
+    image_bytes = prepare_cover(image_bytes)
     if image_bytes is None:
         return ImageState.UNAVAILABLE
     try:
@@ -178,23 +181,3 @@ def apply_cover(
     except SpotifyProviderError:
         return ImageState.PRESERVED
     return ImageState.UPDATED if result.changed else ImageState.PRESERVED
-
-
-def _jpeg_cover(image_bytes: bytes) -> bytes | None:
-    """Convert supported artwork to Spotify's JPEG format and size limit."""
-
-    if image_bytes.startswith(b"\xff\xd8\xff") and len(image_bytes) <= 256 * 1024:
-        return image_bytes
-    try:
-        with Image.open(BytesIO(image_bytes)) as source:
-            image = source.convert("RGB")
-        image.thumbnail((640, 640))
-        for quality in (90, 85, 80, 75, 70, 65, 60, 55, 50):
-            output = BytesIO()
-            image.save(output, format="JPEG", quality=quality, optimize=True)
-            encoded = output.getvalue()
-            if len(encoded) <= 256 * 1024:
-                return encoded
-    except (OSError, ValueError, UnidentifiedImageError):
-        return None
-    return None

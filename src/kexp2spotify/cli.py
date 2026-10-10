@@ -74,7 +74,8 @@ def main(argv: list[str] | None = None) -> int:
                     raise KexpError("Spotify did not return an access token")
                 destination = SpotifyClient(settings, authenticator.last_access_token)
                 sync = synchronize_records(
-                    source, destination, destination, summary.records, settings
+                    source, destination, destination, summary.records, settings,
+                    playlist_store=repository,
                 )
                 logger.info(
                     "spotify update complete shows=%d created=%d appended=%d removed=%d skipped=%d "
