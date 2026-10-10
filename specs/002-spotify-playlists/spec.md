@@ -74,6 +74,24 @@ As an operator, I want every show playlist to display the show’s picture and a
 2. **Given** a playlist update completes at a known local time, **When** the playlist is inspected, **Then** its description is exactly `Last updated at HH:MM on DD-MM-YYYY (Timezone) ·  github.com/JorgeRuizDev/kexp2spotify`, with the execution time and timezone substituted into the placeholders.
 3. **Given** a show has no usable picture, **When** its playlist is created or updated, **Then** synchronization continues without inventing artwork and reports that the picture was unavailable.
 
+---
+
+### User Story 5 - Maintain a latest tracks playlist across shows (Priority: P1)
+
+As a listener, I want one playlist containing the latest tracks played across all KEXP shows so that I can follow recent KEXP music without choosing a show first.
+
+The default cover is the [KEXP logo image supplied for this playlist](https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/KEXP_logo_%28black_on_orange%29.svg/960px-KEXP_logo_%28black_on_orange%29.svg.png?utm_source=commons.wikimedia.org&utm_campaign=index&utm_content=thumbnail).
+
+**Why this priority**: The cross-show playlist gives listeners a single current feed alongside the existing show playlists.
+
+**Independent Test**: Synchronize timestamped songs from multiple shows and verify that `KEXP - Latest Tracks` contains the unique resolved tracks in newest-first order, obeys the configured playlist limit, and uses the supplied KEXP logo as its cover.
+
+**Acceptance Scenarios**:
+
+1. **Given** songs from multiple shows are synchronized, **When** the update completes, **Then** one managed playlist named `KEXP - Latest Tracks` contains their resolved tracks ordered from newest to oldest, regardless of show.
+2. **Given** `KEXP - Latest Tracks` already exists, **When** another batch is synchronized, **Then** new tracks are added without duplicates and the oldest tracks are removed first when the configured limit is exceeded.
+3. **Given** the aggregate playlist is created or updated and the default logo is available, **When** the update completes, **Then** the playlist cover uses the KEXP logo supplied in the feature request.
+
 ### Edge Cases
 
 - No shows or no new songs are available; synchronization completes successfully without creating unrelated playlists.
@@ -86,6 +104,8 @@ As an operator, I want every show playlist to display the show’s picture and a
 - The show picture cannot be read or uploaded; playlist synchronization continues while preserving the prior artwork when possible.
 - The local execution timezone is unavailable; synchronization fails with a clear configuration error rather than emitting an ambiguous timestamp.
 - The description timestamp crosses midnight or a daylight-saving transition; the displayed date, time, and timezone correspond to the update execution.
+- The current batch contains no new records; synchronization does not create an empty latest-tracks playlist or clear its existing content.
+- The default KEXP logo cannot be fetched, converted, or uploaded; track synchronization continues and an existing cover is preserved when possible.
 
 ## Requirements *(mandatory)*
 
@@ -112,11 +132,15 @@ As an operator, I want every show playlist to display the show’s picture and a
 - **FR-019**: The system MUST preserve the existing playlist state when authorization or configuration validation fails before synchronization begins.
 - **FR-020**: The system MUST allow the show identity, show name, show picture, song queue, playlist limit, and execution timezone to be supplied through the project’s existing pipeline and configuration contracts.
 - **FR-021**: The project MUST include documentation under `docs/` that explains how to create the Spotify application, configure credentials and scopes, perform the one-time interactive login, protect the persisted authorization, run unattended updates, and repeat login when authorization becomes unusable.
+- **FR-022**: In addition to one playlist per show, the system MUST maintain one cross-show playlist named exactly `KEXP - Latest Tracks` whenever the current synchronization batch contains songs.
+- **FR-023**: The latest-tracks playlist MUST combine resolved songs from all shows, order new songs by their play timestamps with newest first, avoid duplicate destination tracks, and enforce the configured playlist limit by removing the oldest songs first.
+- **FR-024**: The latest-tracks playlist MUST use the KEXP logo image supplied with this feature as its default cover when the image can be fetched and uploaded; an unavailable or rejected cover MUST NOT prevent track synchronization.
 
 ### Key Entities
 
 - **Show**: A stable show identity with a display name and optional picture used to identify and decorate its managed playlist.
 - **Managed show playlist**: The destination playlist associated with exactly one show, including its provider identity, expected name, cover picture, description, and ordered songs.
+- **Latest-tracks playlist**: The cross-show destination playlist with the fixed identity `kexp-latest-tracks`, display name `KEXP - Latest Tracks`, combined queue, and KEXP logo cover.
 - **Song queue item**: A song associated with a show and an ordering position or timestamp used to append new songs and remove the oldest songs first.
 - **Authorization**: Persisted permission that allows unattended playlist operations until it is revoked, expires, or otherwise becomes unusable.
 - **Playlist synchronization**: One execution that validates configuration and authorization, creates or updates show playlists, applies the FIFO limit, and reports results.
@@ -129,14 +153,16 @@ As an operator, I want every show playlist to display the show’s picture and a
 - **SC-002**: For every successfully synchronized show, exactly one managed playlist is identifiable by its stable show association, and no execution creates a second managed playlist for that show.
 - **SC-003**: After every successful synchronization, 100% of managed playlists contain no more songs than their configured limit and retain the newest eligible songs according to FIFO ordering.
 - **SC-004**: In repeated synchronization of unchanged input, 100% of show playlists remain free of duplicate song entries and no additional playlist is created.
-- **SC-005**: For every successful synchronization with an available show picture, 100% of managed playlists show that picture as their cover.
+- **SC-005**: For every successful synchronization with an available show picture, 100% of that show's playlist covers use the picture.
 - **SC-006**: For every successful playlist create or update, 100% of descriptions match the required template and identify the actual update time and timezone.
 - **SC-007**: An operator can diagnose authorization, configuration, artwork, and playlist failures from the command output without inspecting provider internals or rerunning the job solely to discover the affected show.
+- **SC-008**: After each synchronization batch containing songs from one or more shows, exactly one `KEXP - Latest Tracks` playlist contains the unique resolved tracks from that batch and prior batches, in newest-first order and within the configured limit.
+- **SC-009**: When the supplied KEXP logo can be fetched and uploaded, the `KEXP - Latest Tracks` playlist uses it as its cover.
 
 ## Assumptions
 
 - The KEXP plays endpoint provides a stable numeric `show` identity and timestamped trackplays. The destination workflow resolves the corresponding show metadata through the KEXP show endpoint, using `program_name` and `program_image_uri` when available.
-- The configured playlist limit applies independently to every show playlist and has one project-wide default unless a more specific existing configuration contract overrides it.
+- The configured playlist limit applies independently to every show playlist and the aggregate latest-tracks playlist, using one project-wide default unless a more specific existing configuration contract overrides it.
 - The execution timezone is configured by the project and is used for both the displayed timestamp and the timezone label in the description.
 - A valid long-lived authorization can be persisted securely in the environment where the unmanaged scheduled project runs; secrets are not written to logs or committed to the repository.
 - The provider may impose limits on playlist size, artwork dimensions, or request frequency; the integration reports provider rejection and follows the project’s existing retry and error-handling conventions.
@@ -149,9 +175,9 @@ As an operator, I want every show playlist to display the show’s picture and a
 The basic live workflow is now wired as follows:
 
 1. `spotify-login` performs the interactive PKCE authorization and saves the refresh token.
-2. `spotify-update` fetches the current KEXP plays, persists eligible trackplays, and groups the current batch by the KEXP `show` identity.
+2. `spotify-update` fetches the current KEXP plays, persists eligible trackplays, and groups the current batch by the KEXP `show` identity while retaining the batch for the cross-show playlist.
 3. The command loads and refreshes Spotify authorization before any playlist mutation.
-4. For each show, it fetches KEXP show metadata, resolves each song through Spotify search, creates or reuses `KEXP - <program_name>`, reconciles the FIFO queue, updates the description, and attempts the show cover.
+4. For each show, it fetches KEXP show metadata, resolves each song through Spotify search, creates or reuses `KEXP - <program_name>`, reconciles the FIFO queue, updates the description, and attempts the show cover. It also creates or reuses `KEXP - Latest Tracks`, reconciles the combined queue using the same limit, and attempts the default KEXP logo cover.
 5. Unresolved tracks and unavailable artwork are reported as non-fatal skips; authorization, configuration, source, and provider failures return a non-zero result before or during synchronization.
 
 The live workflow requires network access to both KEXP and Spotify and a configured Spotify application. Tests use mocked source and provider responses and never modify a real Spotify account.

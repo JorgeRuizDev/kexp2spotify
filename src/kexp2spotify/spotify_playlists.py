@@ -4,7 +4,10 @@ from __future__ import annotations
 
 from collections.abc import Callable, Sequence
 from datetime import datetime
+from io import BytesIO
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+from PIL import Image, UnidentifiedImageError
 
 from .config import Settings
 from .domain import (
@@ -158,14 +161,33 @@ def apply_cover(
 ) -> ImageState:
     """Apply artwork without making an unavailable image fatal to queue sync."""
 
-    if (
-        not image_bytes
-        or not image_bytes.startswith(b"\xff\xd8\xff")
-        or len(image_bytes) > 256 * 1024
-    ):
+    if not image_bytes:
+        return ImageState.UNAVAILABLE
+    image_bytes = _jpeg_cover(image_bytes)
+    if image_bytes is None:
         return ImageState.UNAVAILABLE
     try:
         result = destination.update_cover(playlist_id, image_bytes)
     except SpotifyProviderError:
         return ImageState.PRESERVED
     return ImageState.UPDATED if result.changed else ImageState.PRESERVED
+
+
+def _jpeg_cover(image_bytes: bytes) -> bytes | None:
+    """Convert supported artwork to Spotify's JPEG format and size limit."""
+
+    if image_bytes.startswith(b"\xff\xd8\xff") and len(image_bytes) <= 256 * 1024:
+        return image_bytes
+    try:
+        with Image.open(BytesIO(image_bytes)) as source:
+            image = source.convert("RGB")
+        image.thumbnail((640, 640))
+        for quality in (90, 85, 80, 75, 70, 65, 60, 55, 50):
+            output = BytesIO()
+            image.save(output, format="JPEG", quality=quality, optimize=True)
+            encoded = output.getvalue()
+            if len(encoded) <= 256 * 1024:
+                return encoded
+    except (OSError, ValueError, UnidentifiedImageError):
+        return None
+    return None

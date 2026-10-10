@@ -22,13 +22,13 @@ The concrete adapter may batch calls, but each operation must expose typed succe
 ## Reconciliation contract
 
 1. Validate configuration and authorization before any playlist mutation.
-2. Resolve or create exactly one managed playlist for the stable show identity.
+2. Resolve or create exactly one managed playlist for the stable show identity, and maintain the fixed `KEXP - Latest Tracks` aggregate playlist for non-empty batches.
 3. Read the existing ordered items that the authenticated user can manage.
 4. Deduplicate by source/destination track identity while preserving existing positions.
 5. Append new eligible items in chronological queue order.
 6. Remove the oldest items until the configured limit is satisfied.
 7. Update the description after a successful playlist reconciliation.
-8. Upload the show cover when available; preserve existing artwork if upload fails where possible.
+8. Upload the show cover when available; for the aggregate playlist, upload the supplied KEXP logo as its default cover. Convert supported source artwork to a JPEG within the provider size limit, and preserve existing artwork if upload fails where possible.
 9. Make retries idempotent by re-reading the playlist and comparing identities before appending or removing.
 
 ## Error contract

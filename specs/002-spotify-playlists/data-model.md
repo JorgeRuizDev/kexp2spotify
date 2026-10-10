@@ -27,16 +27,18 @@ Ordering is ascending by `queued_at`, with a deterministic secondary key such as
 
 ## ManagedPlaylist
 
-Represents the one destination playlist associated with a Show.
+Represents a destination playlist associated with a Show or with the fixed cross-show identity `kexp-latest-tracks`.
 
 | Field | Type | Rules |
 |---|---|---|
-| `show_id` | string | Unique association; prevents duplicate managed playlists. |
+| `show_id` | string | Unique association; prevents duplicate managed playlists. The aggregate playlist uses the reserved identity `kexp-latest-tracks`. |
 | `provider_playlist_id` | string | Persisted/provider-discovered Spotify playlist identifier. |
 | `name` | string | Exactly `KEXP - <normalized show name>`. |
 | `description` | string | Required generated template with execution time and timezone. |
 | `track_uris` | ordered list[string] | No duplicates; length must not exceed configured limit after reconciliation. |
 | `image_state` | enum | `updated`, `preserved`, or `unavailable`. |
+
+The aggregate playlist is named exactly `KEXP - Latest Tracks`. Its queue combines resolved tracks from every show in the current input batch, uses the same configured limit as show playlists, and orders new tracks by play time from newest to oldest. Repeated destination tracks are not duplicated. Its default cover is the KEXP logo image supplied with the feature; the source image is converted to an uploadable JPEG within Spotify's size limit.
 
 ## AuthorizationState
 

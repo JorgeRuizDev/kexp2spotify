@@ -35,6 +35,8 @@ Runs keep their history in SQLite. The first run of each day (according to `spot
 
 ## Spotify
 
+`spotify-update` maintains one `KEXP - <show name>` playlist per show and a cross-show `KEXP - Latest Tracks` playlist. The latest-tracks playlist uses the same configured limit as show playlists and the KEXP logo as its default cover.
+
 Copy the Spotify fields from [config.example.yml](config.example.yml) into the YAML file or use the `SPOTIFY_*` environment overrides. The Client ID and loopback redirect URI are required for Spotify commands; the Client Secret is optional for PKCE. Store the token outside the repository.
 
 Run the interactive flow once:
