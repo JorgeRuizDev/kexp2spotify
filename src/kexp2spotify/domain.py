@@ -51,9 +51,20 @@ class SongRecord(BaseModel):
 def map_trackplay(item: Mapping[str, Any], captured_at: datetime) -> SongRecord:
     """Map a provider object while retaining the complete original object."""
 
+    track_id = item.get("track_id")
+    if track_id is None or not str(track_id).strip():
+        recording_id = item.get("recording_id")
+        play_id = item.get("id")
+        if recording_id is not None and str(recording_id).strip():
+            track_id = f"kexp-recording:{recording_id}"
+        elif play_id is not None and str(play_id).strip():
+            track_id = f"kexp-play:{play_id}"
+        else:
+            track_id = ""
+
     return SongRecord(
         id=item.get("id"),
-        track_id=item.get("track_id", ""),
+        track_id=str(track_id),
         song=item.get("song", ""),
         artist=item.get("artist", ""),
         album=item.get("album"),
@@ -98,6 +109,7 @@ class SongQueueItem(BaseModel):
     destination_uri: str | None = None
     queued_at: datetime
     source_id: str | None = None
+    source_order: int | None = None
 
     @field_validator("show_id", "track_id")
     @classmethod

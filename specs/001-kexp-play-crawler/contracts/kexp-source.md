@@ -9,7 +9,7 @@
 
 ## Accepted response
 
-The adapter accepts the provider's collection response and extracts individual play objects. A play is eligible only when `play_type == "trackplay"` and `track_id` is present and non-empty.
+The adapter accepts the provider's collection response and extracts individual play objects. A play is eligible when `play_type == "trackplay"`, `song` and `artist` are valid, and it has a usable identity. Prefer non-empty `track_id`; when absent, use non-empty `recording_id`; when both are absent, use the play `id`.
 
 The adapter preserves the full original play object as `raw_json`. It must not assume non-trackplay objects have the same fields.
 

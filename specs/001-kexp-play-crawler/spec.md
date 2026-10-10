@@ -12,7 +12,7 @@
 
 ### Session 2026-10-09
 
-- Q: Which identifier should determine whether a song is already stored: `track_id`, the play identifier (`id`), or a combination of fields? → A: `track_id`.
+- Q: Which identifier should determine whether a song is already stored: `track_id`, the play identifier (`id`), or a combination of fields? → A: Prefer `track_id`; if KEXP omits it, use `recording_id`, then the play identifier (`id`) as a last resort.
 - Q: Should the database retain the complete history of captured songs or remove songs that fall outside the latest N? → A: Retain the complete history; N only limits deduplication.
 - Additional input: Limits, KEXP URLs, and the remaining operational parameters must be configured through a YAML file that is always loaded; environment variables may override its values, using typed configuration based on `pydantic-settings`.
 
@@ -81,7 +81,7 @@ As a cron operator, I want network or data failures not to corrupt already store
 
 - **FR-001**: The system MUST query the KEXP play source and request the latest M plays, where M is configurable.
 - **FR-002**: The system MUST consider only plays whose `play_type` is exactly `trackplay`.
-- **FR-003**: The system MUST identify and deduplicate a song by `track_id` and MUST reject items without a valid `track_id`.
+- **FR-003**: The system MUST identify and deduplicate a song by `track_id` when present, otherwise by `recording_id`, and otherwise by the play identifier (`id`); it MUST reject items with none of these identifiers.
 - **FR-004**: The system MUST compare received songs with the identifiers of the latest N stored songs, where N is configurable.
 - **FR-005**: The system MUST insert only songs not present in that N-song window and MUST prevent duplicates within a single run.
 - **FR-006**: The system MUST persist, at minimum, the song name, artist, album, release date, identifier, ingestion timestamp, and complete play JSON.
@@ -123,7 +123,7 @@ As a cron operator, I want network or data failures not to corrupt already store
 ## Assumptions
 
 - The external source provides an orderable collection of recent plays and allows requesting or limiting the number of M results.
-- The primary deduplication identifier is the song identifier (`track_id`); the play identifier is retained in the original JSON and may be stored as auxiliary data.
+- The primary deduplication identifier is `track_id`; `recording_id` is the fallback song identity and the play identifier (`id`) is the final fallback when KEXP omits both. Preserve the full provider payload in `raw_json`.
 - M and N have configurable values with reasonable defaults for periodic execution; an administration interface is outside this feature's scope.
 - The YAML configuration is always loaded and environment variables act as overrides to simplify cron deployment.
 - Configuration is implemented using `pydantic-settings` or the project's equivalent mechanism for combining and validating YAML and environment variables.

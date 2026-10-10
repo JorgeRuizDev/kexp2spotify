@@ -1,0 +1,56 @@
+{
+  "$schema": "https://rms.api.bbc.co.uk/docs/swagger.json#/definitions/SegmentItemsResponse",
+  "total": 3,
+  "limit": 3,
+  "offset": 0,
+  "data": [
+    {
+      "type": "segment_item",
+      "id": "p0gnbhlc",
+      "urn": "urn:bbc:radio:segment:music:nznnmm",
+      "segment_type": "music",
+      "titles": {
+        "primary": "Eminem",
+        "secondary": "Lose Yourself",
+        "tertiary": null
+      },
+      "image_url": "https://ichef.bbci.co.uk/images/ic/{recipe}/p02l4wr2.jpg",
+      "offset": {
+        "start": 770,
+        "end": 1034,
+        "label": "2 minutes ago",
+        "now_playing": false
+      },
+      "uris": []
+    },
+    {
+      "type": "segment_item",
+      "id": "p0gnbhla",
+      "urn": "urn:bbc:radio:segment:music:nznnml",
+      "segment_type": "music",
+      "titles": {
+        "primary": "Artist Two",
+        "secondary": "Song Two",
+        "tertiary": null
+      },
+      "offset": {
+        "start": 1034,
+        "end": 1200,
+        "label": "Now Playing",
+        "now_playing": true
+      },
+      "uris": []
+    },
+    {
+      "type": "segment_item",
+      "id": "p0gnbhlb",
+      "urn": "urn:bbc:radio:segment:ident:nznnmk",
+      "segment_type": "ident",
+      "titles": {
+        "primary": "BBC Radio 1",
+        "secondary": "Station ident"
+      },
+      "offset": {"start": 1200, "end": 1220, "label": "Now Playing"}
+    }
+  ]
+}

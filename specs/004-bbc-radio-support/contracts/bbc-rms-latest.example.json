@@ -1,0 +1,17 @@
+{
+  "data": [
+    {
+      "id": "segment-id-from-rms",
+      "urn": "urn:bbc:radio:segment:segment-id-from-rms",
+      "segment_type": "music",
+      "titles": {
+        "primary": "Artist name",
+        "secondary": "Track title"
+      },
+      "image_url": "https://ichef.bbci.co.uk/images/ic/320x320/p0000000.jpg",
+      "offset": 0,
+      "labels": []
+    }
+  ],
+  "metadata": {}
+}

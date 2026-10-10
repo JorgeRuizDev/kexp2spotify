@@ -15,6 +15,21 @@ class PlaySource(Protocol):
     def fetch_plays(self) -> Sequence[dict[str, object]]: ...
 
 
+@dataclass(frozen=True)
+class BbcLatestSegmentsRequest:
+    """Station-scoped request for recent BBC RMS segments."""
+
+    service_id: str
+
+
+class BbcLatestSegmentsSource(Protocol):
+    """Typed source boundary for normalized BBC music plays."""
+
+    def fetch_latest_segments(
+        self, request: BbcLatestSegmentsRequest
+    ) -> Sequence[SongRecord]: ...
+
+
 class SongRepository(Protocol):
     """Persistence operations required by the crawler."""
 

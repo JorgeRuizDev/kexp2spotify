@@ -6,7 +6,7 @@
 
 ## Summary
 
-Build a cron-executable crawler that queries recent KEXP plays, filters exclusively for `trackplay`, deduplicates by `track_id` against the latest N songs, and persists new songs with their metadata and original JSON in SQLite. Configuration will always be loaded from YAML and combined with higher-precedence environment variables through `pydantic-settings`. The process also writes timestamped, safe, rotating operational logs with configurable file path, level, retention, and console output. The design separates configuration, the HTTP adapter, the song domain, the deduplication use case, and the SQLite repository.
+Build a cron-executable crawler that queries recent KEXP plays, filters exclusively for `trackplay`, deduplicates by `track_id` (falling back to `recording_id`, then play `id`) against the latest N songs, and persists new songs with their metadata and original JSON in SQLite. Configuration will always be loaded from YAML and combined with higher-precedence environment variables through `pydantic-settings`. The process also writes timestamped, safe, rotating operational logs with configurable file path, level, retention, and console output. The design separates configuration, the HTTP adapter, the song domain, the deduplication use case, and the SQLite repository.
 
 ## Technical Context
 

@@ -7,7 +7,7 @@ Represents a valid `trackplay` play prepared for the pipeline.
 | Field | Type | Required | Rules |
 |---|---|---:|---|
 | `id` | integer | yes | KEXP play identifier; retained as auxiliary data |
-| `track_id` | string | yes | Canonical identity and unique deduplication key |
+| `track_id` | string | yes | Canonical deduplication key derived from `track_id`, falling back to `recording_id` and then play `id` |
 | `song` | string | yes | Song name; non-empty |
 | `artist` | string | yes | Artist; non-empty |
 | `album` | string/null | no | Retained as empty/null when absent |

@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.kexp2spotify/schemas/bbc-radio-catalog.json",
+  "title": "BBC music radio station catalog entry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["service_id", "name", "format"],
+  "properties": {
+    "service_id": {
+      "type": "string",
+      "enum": [
+        "bbc_radio_one",
+        "bbc_radio_one_anthems",
+        "bbc_radio_one_dance",
+        "bbc_1xtra",
+        "bbc_radio_two",
+        "bbc_radio_three",
+        "bbc_radio_three_unwind",
+        "bbc_6music",
+        "bbc_radio_six_indie_forever"
+      ]
+    },
+    "name": {
+      "type": "string",
+      "enum": [
+        "BBC Radio 1",
+        "BBC Radio 1 Anthems",
+        "BBC Radio 1 Dance",
+        "BBC Radio 1Xtra",
+        "BBC Radio 2",
+        "BBC Radio 3",
+        "BBC Radio 3 Unwind",
+        "BBC Radio 6 Music",
+        "BBC Radio 6 Indie Forever"
+      ]
+    },
+    "format": { "type": "string", "minLength": 1 },
+    "logo_url": { "type": ["string", "null"], "format": "uri" }
+  }
+}

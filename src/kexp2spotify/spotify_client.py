@@ -63,7 +63,8 @@ class SpotifyClient:
             return None
         if len(candidates) > 1:
             logger.warning(
-                "multiple playlists match show %s and name %r; reusing playlist %s from %s",
+                "multiple playlists match show %s (managed identity) and name %r; "
+                "reusing playlist %s from %s",
                 show_id,
                 expected_name,
                 candidates[0]["id"],
@@ -158,7 +159,7 @@ class SpotifyClient:
         response = self._request(
             "DELETE",
             f"/playlists/{playlist_id}/items",
-            json={"tracks": [{"uri": item.uri} for item in items]},
+            json={"items": [{"uri": item.uri} for item in items]},
         )
         return MutationResult(changed=True, snapshot_id=response.json().get("snapshot_id"))
 

@@ -28,7 +28,7 @@ description: "Task list for implementing the KEXP Play Crawler"
 
 **⚠️ CRITICAL**: User story work depends on this phase.
 
-- [X] T005 Create typed domain models and validation helpers in `src/kexp2spotify/domain.py`, enforcing `play_type == "trackplay"`, non-empty `track_id`, required non-empty `song` and `artist`, nullable `album` and `release_date`, UTC `captured_at`, and preservation of provider fields in `raw_json`
+- [X] T005 Create typed domain models and validation helpers in `src/kexp2spotify/domain.py`, enforcing `play_type == "trackplay"`, a canonical identity from `track_id`/`recording_id`/play `id`, required non-empty `song` and `artist`, nullable `album` and `release_date`, UTC `captured_at`, and preservation of provider fields in `raw_json`
 - [X] T006 [P] Define source and repository protocols in `src/kexp2spotify/ports.py` so the domain depends only on typed abstractions, not HTTPX, KEXP JSON, or `sqlite3`
 - [X] T007 Implement mandatory YAML loading, environment-variable precedence, and typed validation in `src/kexp2spotify/config.py` using `pydantic-settings`; reject missing/unreadable/invalid YAML and invalid positive limits, timeout, URL, or database path before side effects
 - [X] T008 [P] Add configuration unit tests in `tests/unit/test_config.py` covering YAML loading, environment overrides, precedence, missing YAML, malformed YAML, and invalid values
@@ -77,7 +77,7 @@ description: "Task list for implementing the KEXP Play Crawler"
 ### Implementation for User Story 2
 
 - [X] T021 [US2] Implement a repository query in `src/kexp2spotify/sqlite_repository.py` that returns the N most recent `track_id` values ordered by `captured_at` descending with deterministic tie-breaking
-- [X] T022 [US2] Implement deduplication and within-batch uniqueness in `src/kexp2spotify/crawler.py`, using only `track_id`, comparing against the configured N-window, and retaining all existing historical rows
+- [X] T022 [US2] Implement deduplication and within-batch uniqueness in `src/kexp2spotify/crawler.py`, using the canonical song identity, comparing against the configured N-window, and retaining all existing historical rows
 - [X] T023 [US2] Make batch insertion idempotent in `src/kexp2spotify/sqlite_repository.py` and map duplicate conflicts to duplicate counts without aborting valid new inserts
 - [X] T024 [US2] Extend `tests/integration/test_crawler_ingestion.py` with repeated-execution assertions proving that processing the same response twice inserts zero additional rows
 
@@ -175,6 +175,6 @@ Developer C: T017 + T018 — orchestration and CLI wiring
 ## Notes
 
 - Every task uses the required checklist format and includes a concrete file path.
-- `track_id` is the only deduplication identity; `id` is retained as the provider play identifier.
+- Canonical identity prefers `track_id`, then `recording_id`, then the provider play identifier `id`.
 - The YAML file is mandatory on every run; environment variables override YAML values.
 - The feature does not include Spotify playlist updates.

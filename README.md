@@ -59,6 +59,21 @@ See [docs/spotify-login.md](docs/spotify-login.md) for SSH port forwarding, perm
 
 See [the feature quickstart](specs/001-kexp-play-crawler/quickstart.md) for validation scenarios and troubleshooting guidance.
 
+### BBC music stations
+
+`spotify-update` also maintains one playlist per supported BBC music service: BBC Radio 1,
+BBC Radio 1 Anthems, BBC Radio 1 Dance, BBC Radio 1Xtra, BBC Radio 2, BBC Radio 3,
+BBC Radio 3 Unwind, BBC Radio 6 Music, and BBC Radio 6 Indie Forever. Each playlist groups
+eligible tracks across that station's shows. BBC uses the existing Spotify authorization,
+`fetch_limit` (capped at the RMS maximum of 10 requested segments per station), playlist limit,
+and timezone settings; it does not require BBC credentials.
+The existing KEXP show playlists and KEXP Latest Tracks playlist continue unchanged.
+
+The integration reads BBC's observed RMS latest-segments endpoint. BBC does not document this
+endpoint as a supported external API and provides no upstream stability guarantee, so BBC may
+change its availability or response shape. See [the BBC feature quickstart](specs/004-bbc-radio-support/quickstart.md)
+for setup and failure behavior.
+
 ## Quality checks
 
 Run the quality checks through the project environment:

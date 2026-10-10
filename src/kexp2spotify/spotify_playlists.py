@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable, Sequence
 from datetime import datetime
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -15,10 +16,12 @@ from .domain import (
     SongRecord,
     SynchronizationResult,
 )
-from .errors import ConfigurationError, SpotifyProviderError
+from .errors import ConfigurationError
 from .ports import DestinationItem, PlaylistDestination, PlaylistIdStore
 from .spotify_artwork import prepare_cover
-from .spotify_metadata import DESCRIPTION_SUFFIX
+from .spotify_metadata import DESCRIPTION_SUFFIX, playlist_identity_marker
+
+logger = logging.getLogger("kexp2spotify")
 
 
 def playlist_name(show_name: str) -> str:
@@ -52,7 +55,13 @@ def reconcile_queue(
     existing_uris = {item.uri for item in existing}
     ordered = sorted(
         items,
-        key=lambda item: (item.queued_at, item.source_id or "", item.track_id),
+        key=lambda item: (
+            item.queued_at,
+            1 if item.source_order is not None else 0,
+            -item.source_order if item.source_order is not None else 0,
+            item.source_id or "",
+            item.track_id,
+        ),
         reverse=True,
     )
     new_uris: list[str] = []
@@ -102,9 +111,12 @@ def reconcile_show(
     now: datetime,
     image_bytes: bytes | None = None,
     playlist_store: PlaylistIdStore | None = None,
+    playlist_name_override: str | None = None,
 ) -> SynchronizationResult:
     description = playlist_description(now, show.timezone or settings.spotify_timezone)
-    name = playlist_name(show.name)
+    if show.id.startswith("bbc:"):
+        description = f"{description} {playlist_identity_marker(show.id)}"
+    name = playlist_name_override or playlist_name(show.name)
     stored_playlist_id = (
         playlist_store.get_playlist_id(show.id) if playlist_store is not None else None
     )
@@ -161,6 +173,12 @@ def queue_items_from_records(
                 destination_uri=resolver(record),
                 queued_at=queued_at,
                 source_id=str(record.id) if record.id is not None else None,
+                source_order=(
+                    record.raw_json.get("source_order")
+                    if isinstance(record.raw_json.get("source_order"), int)
+                    and not isinstance(record.raw_json.get("source_order"), bool)
+                    else None
+                ),
             )
         )
     return result
@@ -178,6 +196,10 @@ def apply_cover(
         return ImageState.UNAVAILABLE
     try:
         result = destination.update_cover(playlist_id, image_bytes)
-    except SpotifyProviderError:
+    except Exception as exc:
+        logger.warning(
+            "playlist artwork update failed operation=upload error_type=%s",
+            type(exc).__name__,
+        )
         return ImageState.PRESERVED
     return ImageState.UPDATED if result.changed else ImageState.PRESERVED

@@ -13,6 +13,10 @@ class SourceError(KexpError):
     """The configured source could not provide a valid collection."""
 
 
+class NonRetryableSourceError(SourceError):
+    """The source rejected a request that will not succeed if repeated unchanged."""
+
+
 class PersistenceError(KexpError):
     """The repository could not complete an operation."""
 

@@ -31,6 +31,6 @@
 
 ## Notes
 
-- The specification leaves M and N configurable and assumes `track_id` as the deduplication identifier, consistent with the provided example.
+- The specification leaves M and N configurable and prefers `track_id` as the deduplication identifier, with `recording_id` and play `id` fallbacks when KEXP omits it.
 - Spotify integration and playlist management are outside the scope of this feature.
 - These two criteria remain pending because the user explicitly requested `pydantic-settings` and a specific YAML-plus-environment-variable configuration strategy; they must be retained as a technical constraint for planning.

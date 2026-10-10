@@ -1,0 +1,114 @@
+openapi: 3.1.0
+info:
+  title: Observed BBC Sounds RMS latest-segments contract
+  version: "observed-2026-10-10"
+  description: >-
+    Local contract for the unauthenticated HTTP request shape used by BBC Sounds RMS.
+    BBC does not publish this endpoint as a supported external developer API. This document
+    records the request and response fields the adapter relies on; it is not a BBC guarantee.
+servers:
+  - url: https://rms.api.bbc.co.uk
+paths:
+  /v2/services/{service_id}/segments/latest:
+    get:
+      operationId: getLatestServiceSegments
+      summary: Read recent segment metadata for one allowlisted music service
+      security: []
+      parameters:
+        - name: service_id
+          in: path
+          required: true
+          schema:
+            type: string
+            enum:
+              - bbc_radio_one
+              - bbc_radio_one_anthems
+              - bbc_radio_one_dance
+              - bbc_1xtra
+              - bbc_radio_two
+              - bbc_radio_three
+              - bbc_radio_three_unwind
+              - bbc_6music
+              - bbc_radio_six_indie_forever
+        - name: experience
+          in: query
+          required: true
+          schema:
+            type: string
+            const: domestic
+        - name: offset
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: limit
+          in: query
+          required: true
+          description: Existing configured fetch_limit, capped at the observed RMS maximum of 10.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 10
+      responses:
+        "200":
+          description: Recent segments in RMS order (observed newest first).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LatestSegmentsResponse"
+        "4XX":
+          description: >-
+            Request rejected; permanent 4xx errors are station-scoped and not retried.
+            Retry 408, 425, and 429 under the bounded station policy.
+        "429":
+          description: Rate limited; retry this station according to the bounded policy.
+        "5XX":
+          description: RMS failure; retry this station according to the configured bounded policy.
+components:
+  schemas:
+    LatestSegmentsResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Segment"
+        metadata:
+          type: object
+          additionalProperties: true
+      additionalProperties: true
+    Segment:
+      type: object
+      description: >-
+        RMS segment object. Only the fields used by normalization are constrained here;
+        provider additions are retained in raw_json.
+      properties:
+        id:
+          type: [string, integer]
+        urn:
+          type: string
+        segment_type:
+          type: string
+        titles:
+          type: object
+          properties:
+            primary:
+              type: string
+            secondary:
+              type: string
+            tertiary:
+              type: string
+          additionalProperties: true
+        image_url:
+          type: string
+          format: uri
+          description: Segment/track image where supplied, not station logo artwork.
+        offset:
+          description: Provider-relative offset; retain verbatim and do not treat as wall time.
+        labels:
+          type: array
+          items: {}
+      additionalProperties: true

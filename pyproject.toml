@@ -22,6 +22,11 @@ packages = ["src/kexp2spotify"]
 
 [tool.hatch.build.targets.wheel.force-include]
 "src/kexp2spotify/assets/kexp-logo-black-on-orange.jpg" = "kexp2spotify/assets/kexp-logo-black-on-orange.jpg"
+"src/kexp2spotify/assets/bbc-radio-1.png" = "kexp2spotify/assets/bbc-radio-1.png"
+"src/kexp2spotify/assets/bbc-radio-1-anthems.png" = "kexp2spotify/assets/bbc-radio-1-anthems.png"
+"src/kexp2spotify/assets/bbc-radio-2.png" = "kexp2spotify/assets/bbc-radio-2.png"
+"src/kexp2spotify/assets/bbc-radio-3.png" = "kexp2spotify/assets/bbc-radio-3.png"
+"src/kexp2spotify/assets/bbc-radio-6-music.png" = "kexp2spotify/assets/bbc-radio-6-music.png"
 
 [project.optional-dependencies]
 dev = [

@@ -83,17 +83,20 @@ def failure_message(command: str, attempts: int, exc: BaseException) -> str:
 
 
 def run_with_retries(
-    operation: Callable[[], Any], attempts: int = 4, delay_seconds: float = 1.0
+    operation: Callable[[], Any],
+    attempts: int = 4,
+    delay_seconds: float = 1.0,
+    retry_if: Callable[[Exception], bool] | None = None,
 ) -> tuple[Any, int]:
-    """Run an operation once plus three retries, preserving the final exception."""
+    """Run with bounded retries, optionally stopping for a non-retryable error."""
 
     import time
 
     for attempt in range(1, attempts + 1):
         try:
             return operation(), attempt
-        except Exception:
-            if attempt == attempts:
+        except Exception as exc:
+            if attempt == attempts or (retry_if is not None and not retry_if(exc)):
                 raise
             time.sleep(delay_seconds * attempt)
     raise AssertionError("unreachable")
