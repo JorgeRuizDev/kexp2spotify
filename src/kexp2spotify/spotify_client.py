@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import logging
 from collections.abc import Sequence
 from typing import Any
 
@@ -10,11 +11,16 @@ import httpx
 
 from .config import Settings
 from .domain import ManagedPlaylist, Show
-from .errors import SpotifyProviderError
 from .ports import DestinationItem, MutationResult
 from .spotify_http import SpotifyHttp
+from .spotify_metadata import (
+    DESCRIPTION_SUFFIX,
+    has_playlist_identity,
+    playlist_identity_marker,
+)
 
 API_URL = "https://api.spotify.com/v1"
+logger = logging.getLogger("kexp2spotify")
 
 
 class SpotifyClient:
@@ -29,22 +35,49 @@ class SpotifyClient:
         return self.http.request(method, f"{API_URL}{path}", token=self.access_token, **kwargs)
 
     def find_managed_playlist(self, show_id: str, expected_name: str) -> ManagedPlaylist | None:
-        matches: list[dict[str, Any]] = []
+        matches: dict[str, dict[str, Any]] = {}
         url: str | None = "/me/playlists?limit=50"
         while url:
             response = self._request("GET", url)
             body = response.json()
             for item in body.get("items", []):
-                if item.get("name") == expected_name and item.get("id"):
-                    matches.append(item)
+                description = str(item.get("description") or "")
+                if (
+                    item.get("name") == expected_name
+                    and item.get("id")
+                    and description.endswith(DESCRIPTION_SUFFIX)
+                ):
+                    matches[str(item["id"])] = item
             url = body.get("next")
             if url and url.startswith(API_URL):
                 url = url[len(API_URL) :]
-        if len(matches) > 1:
-            raise SpotifyProviderError(f"ambiguous managed playlist for show {show_id}")
         if not matches:
             return None
-        item = matches[0]
+        identity_marker = playlist_identity_marker(show_id)
+        identified = [
+            item
+            for item in matches.values()
+            if identity_marker in str(item.get("description") or "")
+        ]
+        # Legacy app playlists have no stable show marker. Reuse one
+        # deterministically, then update_details writes the association so
+        # later runs can distinguish shows with the same display name.
+        candidates = identified or [
+            item
+            for item in matches.values()
+            if not has_playlist_identity(str(item.get("description") or ""))
+        ]
+        if not candidates:
+            return None
+        candidates.sort(key=lambda item: str(item["id"]))
+        if len(candidates) > 1:
+            logger.warning(
+                "multiple managed playlists match show %s; reusing playlist %s from %s",
+                show_id,
+                candidates[0]["id"],
+                ", ".join(str(item["id"]) for item in candidates),
+            )
+        item = candidates[0]
         return ManagedPlaylist(
             show_id=show_id,
             provider_playlist_id=str(item["id"]),

@@ -20,8 +20,7 @@ from .domain import (
 )
 from .errors import ConfigurationError, SpotifyProviderError
 from .ports import DestinationItem, PlaylistDestination
-
-DESCRIPTION_SUFFIX = " ·  github.com/JorgeRuizDev/kexp2spotify"
+from .spotify_metadata import DESCRIPTION_SUFFIX, playlist_identity_marker
 
 
 def playlist_name(show_name: str) -> str:
@@ -31,13 +30,19 @@ def playlist_name(show_name: str) -> str:
     return f"KEXP - {normalized}"
 
 
-def playlist_description(now: datetime, timezone_name: str) -> str:
+def playlist_description(
+    now: datetime, timezone_name: str, show_id: str | None = None
+) -> str:
     try:
         zone = ZoneInfo(timezone_name)
     except ZoneInfoNotFoundError as exc:
         raise ConfigurationError(f"invalid Spotify timezone: {timezone_name}") from exc
     local = now.astimezone(zone)
-    return f"Last updated at {local:%H:%M} on {local:%d-%m-%Y} ({timezone_name}){DESCRIPTION_SUFFIX}"
+    identity = f" {playlist_identity_marker(show_id)}" if show_id else ""
+    return (
+        f"Last updated at {local:%H:%M} on {local:%d-%m-%Y} "
+        f"({timezone_name}){identity}{DESCRIPTION_SUFFIX}"
+    )
 
 
 def reconcile_queue(
@@ -102,7 +107,9 @@ def reconcile_show(
     now: datetime,
     image_bytes: bytes | None = None,
 ) -> SynchronizationResult:
-    description = playlist_description(now, show.timezone or settings.spotify_timezone)
+    description = playlist_description(
+        now, show.timezone or settings.spotify_timezone, show.id
+    )
     name = playlist_name(show.name)
     playlist = destination.find_managed_playlist(show.id, name)
     created = 0

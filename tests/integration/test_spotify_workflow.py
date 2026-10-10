@@ -2,7 +2,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from kexp2spotify.config import Settings
-from kexp2spotify.domain import SongRecord
+from kexp2spotify.domain import ManagedPlaylist, SongRecord
 from kexp2spotify.ports import DestinationItem, MutationResult
 from kexp2spotify.spotify_sync import synchronize_records
 
@@ -17,8 +17,8 @@ class FakeSource:
 
 class FakeSpotify:
     def __init__(self) -> None:
-        self.items: list[DestinationItem] = []
-        self.playlist_created = False
+        self.items: dict[str, list[DestinationItem]] = {}
+        self.playlists: dict[str, ManagedPlaylist] = {}
         self.queries: list[str] = []
 
     def resolve_track(self, query: str) -> str:
@@ -26,25 +26,28 @@ class FakeSpotify:
         return f"spotify:track:{len(self.queries)}"
 
     def find_managed_playlist(self, show_id: str, expected_name: str):
-        return None if not self.playlist_created else self.created
+        return self.playlists.get(show_id)
 
     def create_playlist(self, show, name: str, description: str):
-        from kexp2spotify.domain import ManagedPlaylist
-
-        self.playlist_created = True
-        self.created = ManagedPlaylist(show_id=show.id, provider_playlist_id="playlist",
-                                       name=name, description=description)
-        return self.created
+        playlist_id = f"playlist-{len(self.playlists) + 1}"
+        playlist = ManagedPlaylist(show_id=show.id, provider_playlist_id=playlist_id,
+                                   name=name, description=description)
+        self.playlists[show.id] = playlist
+        self.items[playlist_id] = []
+        return playlist
 
     def read_playlist_items(self, playlist_id: str) -> list[DestinationItem]:
-        return self.items
+        return self.items[playlist_id]
 
     def append_items(self, playlist_id: str, track_uris: list[str]) -> MutationResult:
-        self.items.extend(DestinationItem(uri=uri, position=len(self.items)) for uri in track_uris)
+        items = self.items[playlist_id]
+        items.extend(DestinationItem(uri=uri, position=len(items)) for uri in track_uris)
         return MutationResult(changed=bool(track_uris))
 
     def remove_items(self, playlist_id: str, items: list[DestinationItem]) -> MutationResult:
-        self.items = [item for item in self.items if item not in items]
+        self.items[playlist_id] = [
+            item for item in self.items[playlist_id] if item not in items
+        ]
         return MutationResult(changed=bool(items))
 
     def update_details(self, playlist_id: str, name: str, description: str) -> MutationResult:
@@ -54,7 +57,7 @@ class FakeSpotify:
         return MutationResult(changed=True)
 
 
-def test_current_kexp_records_are_synchronized_to_one_spotify_playlist(tmp_path: Path) -> None:
+def test_current_kexp_records_sync_show_and_latest_playlists(tmp_path: Path) -> None:
     settings = Settings(kexp_plays_url="https://api.kexp.org/v2/plays/", fetch_limit=10,
                         deduplication_window=10, database_path=tmp_path / "db.sqlite",
                         request_timeout_seconds=2, config_file=tmp_path / "config.yml",
@@ -67,7 +70,9 @@ def test_current_kexp_records_are_synchronized_to_one_spotify_playlist(tmp_path:
     result = synchronize_records(FakeSource(), spotify, spotify, records, settings,
                                   datetime(2026, 10, 10, 12, tzinfo=UTC))
     assert result.shows == 1
-    assert result.created_playlists == 1
-    assert result.appended_tracks == 1
-    assert result.artwork_updated == 1
-    assert spotify.items[0].uri == "spotify:track:1"
+    assert result.created_playlists == 2
+    assert result.updated_playlists == 2
+    assert result.appended_tracks == 2
+    assert result.artwork_updated == 2
+    assert spotify.items["playlist-1"][0].uri == "spotify:track:1"
+    assert spotify.items["playlist-2"][0].uri == "spotify:track:1"
